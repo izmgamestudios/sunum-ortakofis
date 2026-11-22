@@ -1,0 +1,311 @@
+// server/shares.ts — shared presentations: file storage, owner keys, link roles, passwords, signed access tokens
+import express, { type Request, type Response, type Router } from 'express';
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import type { Server } from 'socket.io';
+
+export type Visibility = 'private' | 'link' | 'public' | 'password';
+export type LinkRole = 'viewer' | 'editor';
+export type Role = 'owner' | LinkRole;
+
+interface ShareMeta {
+  id: string;
+  title: string;
+  presenter: string;
+  stepCount: number;
+  visibility: Visibility;
+  linkRole: LinkRole;
+  ownerKeyHash: string;
+  passwordHash?: string;
+  passwordSalt?: string;
+  /** bumped on every settings change → invalidates issued tokens */
+  gen: number;
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+  bytes: number;
+}
+
+const MAX_SHARES = 5000;
+const MAX_TOTAL_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
+const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const VIS: Visibility[] = ['private', 'link', 'public', 'password'];
+const ROLES: LinkRole[] = ['viewer', 'editor'];
+
+const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
+const safeEq = (a: string, b: string) => {
+  const x = Buffer.from(a), y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+};
+const b64url = (b: Buffer | string) => Buffer.from(b).toString('base64url');
+
+function newId(len = 10): string {
+  const abc = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from(randomBytes(len), (x) => abc[x % abc.length]).join('');
+}
+
+/** Minimal shape check — content is rendered with React / canvas (no HTML), size is capped by the body parser. */
+function validPresentation(p: unknown): p is { title?: string; presenter?: string; steps: unknown[] } {
+  if (!p || typeof p !== 'object') return false;
+  const steps = (p as { steps?: unknown }).steps;
+  return Array.isArray(steps) && steps.length >= 1 && steps.length <= 9;
+}
+
+const str = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max) : '');
+
+export function createShareRouter(io: Server, dataDir: string): Router {
+  const dir = path.join(dataDir, 'shares');
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+
+  // server secret for token signatures (env wins; otherwise persisted once)
+  const secretFile = path.join(dataDir, '.share-secret');
+  let secret = process.env.SHARE_SECRET ?? '';
+  if (!secret) {
+    if (existsSync(secretFile)) secret = readFileSync(secretFile, 'utf8').trim();
+    else {
+      secret = randomBytes(32).toString('hex');
+      writeFileSync(secretFile, secret, { mode: 0o600 });
+    }
+  }
+
+  // in-memory meta index (content stays on disk)
+  const metas = new Map<string, ShareMeta>();
+  for (const f of readdirSync(dir).filter((x) => x.endsWith('.meta.json'))) {
+    try {
+      const m = JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as ShareMeta;
+      metas.set(m.id, m);
+    } catch {
+      /* skip corrupt */
+    }
+  }
+  const totalBytes = () => [...metas.values()].reduce((a, m) => a + m.bytes, 0);
+  const metaPath = (id: string) => path.join(dir, `${id}.meta.json`);
+  const dataPath = (id: string) => path.join(dir, `${id}.json`);
+
+  // per-share write queue (no interleaved writes)
+  const queues = new Map<string, Promise<unknown>>();
+  const queued = <T>(id: string, job: () => Promise<T>): Promise<T> => {
+    const prev = queues.get(id) ?? Promise.resolve();
+    const next = prev.then(job, job);
+    queues.set(id, next.catch(() => undefined));
+    return next;
+  };
+  async function atomicWrite(file: string, content: string) {
+    const tmp = `${file}.${randomBytes(4).toString('hex')}.tmp`;
+    await writeFile(tmp, content, { mode: 0o600 });
+    await rename(tmp, file);
+  }
+  const saveMeta = (m: ShareMeta) => atomicWrite(metaPath(m.id), JSON.stringify(m));
+
+  /* ---------------- tokens ---------------- */
+  function sign(id: string, role: LinkRole, gen: number): string {
+    const body = b64url(JSON.stringify({ id, role, gen, exp: Date.now() + TOKEN_TTL_MS }));
+    return `${body}.${b64url(createHmac('sha256', secret).update(body).digest())}`;
+  }
+  function verify(token: string | undefined, m: ShareMeta): LinkRole | null {
+    if (!token) return null;
+    const [body, sig] = token.split('.');
+    if (!body || !sig || !safeEq(sig, b64url(createHmac('sha256', secret).update(body).digest()))) return null;
+    try {
+      const t = JSON.parse(Buffer.from(body, 'base64url').toString()) as { id: string; role: LinkRole; gen: number; exp: number };
+      if (t.id !== m.id || t.gen !== m.gen || t.exp < Date.now() || m.visibility === 'private') return null;
+      return ROLES.includes(t.role) ? t.role : null;
+    } catch {
+      return null;
+    }
+  }
+  function roleOf(req: Request, m: ShareMeta): Role | null {
+    const key = req.get('x-owner-key');
+    if (key && safeEq(sha256(key), m.ownerKeyHash)) return 'owner';
+    const auth = req.get('authorization');
+    return verify(auth?.startsWith('Bearer ') ? auth.slice(7) : undefined, m);
+  }
+
+  /* ---------------- rate limiting (password guessing, creation) ---------------- */
+  const hits = new Map<string, { n: number; reset: number }>();
+  function limited(key: string, max: number, windowMs: number): boolean {
+    const now = Date.now();
+    const h = hits.get(key);
+    if (!h || h.reset < now) {
+      hits.set(key, { n: 1, reset: now + windowMs });
+      return false;
+    }
+    h.n++;
+    return h.n > max;
+  }
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of hits) if (v.reset < now) hits.delete(k);
+  }, 60_000).unref();
+
+  function applySettings(m: ShareMeta, body: Record<string, unknown>): string | null {
+    if (body.visibility !== undefined) {
+      if (!VIS.includes(body.visibility as Visibility)) return 'Geçersiz görünürlük';
+      m.visibility = body.visibility as Visibility;
+    }
+    if (body.linkRole !== undefined) {
+      if (!ROLES.includes(body.linkRole as LinkRole)) return 'Geçersiz rol';
+      m.linkRole = body.linkRole as LinkRole;
+    }
+    if (typeof body.password === 'string' && body.password) {
+      if (body.password.length < 4 || body.password.length > 128) return 'Şifre 4–128 karakter olmalı';
+      m.passwordSalt = randomBytes(16).toString('hex');
+      m.passwordHash = scryptSync(body.password, m.passwordSalt, 32).toString('hex');
+    }
+    if (m.visibility === 'password' && !m.passwordHash) return 'Şifreli paylaşım için şifre gerekli';
+    m.gen++;
+    return null;
+  }
+
+  const r = express.Router();
+  r.use(express.json({ limit: '32mb' }));
+  const ip = (req: Request) => req.ip ?? 'x';
+
+  // public gallery
+  r.get('/public', (_req, res) => {
+    const list = [...metas.values()]
+      .filter((m) => m.visibility === 'public')
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 100)
+      .map(({ id, title, presenter, stepCount, updatedAt, linkRole }) => ({ id, title, presenter, stepCount, updatedAt, linkRole }));
+    res.json({ items: list });
+  });
+
+  // create
+  r.post('/', async (req: Request, res: Response) => {
+    if (limited(`create:${ip(req)}`, 20, 60 * 60 * 1000)) return res.status(429).json({ error: 'Çok fazla paylaşım denemesi, biraz sonra tekrar dene.' });
+    const { presentation, settings = {} } = req.body ?? {};
+    if (!validPresentation(presentation)) return res.status(400).json({ error: 'Geçersiz sunum' });
+    if (metas.size >= MAX_SHARES) return res.status(507).json({ error: 'Sunucu kapasitesi dolu' });
+    const json = JSON.stringify(presentation);
+    if (totalBytes() + json.length > MAX_TOTAL_BYTES) return res.status(507).json({ error: 'Sunucu depolama kapasitesi dolu' });
+    const ownerKey = randomBytes(24).toString('base64url');
+    let id = newId();
+    while (metas.has(id)) id = newId();
+    const now = Date.now();
+    const m: ShareMeta = {
+      id,
+      title: str(presentation.title, 120) || 'Sunum',
+      presenter: str(presentation.presenter, 80),
+      stepCount: presentation.steps.length,
+      visibility: 'link',
+      linkRole: 'viewer',
+      ownerKeyHash: sha256(ownerKey),
+      gen: 0,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      bytes: json.length,
+    };
+    const err = applySettings(m, settings);
+    if (err) return res.status(400).json({ error: err });
+    await atomicWrite(dataPath(id), json);
+    await saveMeta(m);
+    metas.set(id, m);
+    res.status(201).json({ id, ownerKey, version: m.version, visibility: m.visibility, linkRole: m.linkRole });
+  });
+
+  // meta (no content) — private shares are invisible to everyone but the owner
+  r.get('/:id/meta', (req, res) => {
+    const m = metas.get(req.params.id);
+    const role = m ? roleOf(req, m) : null;
+    if (!m || (m.visibility === 'private' && role !== 'owner')) return res.status(404).json({ error: 'Sunum bulunamadı ya da özel.' });
+    res.json({ id: m.id, title: m.title, presenter: m.presenter, stepCount: m.stepCount, visibility: m.visibility, linkRole: m.linkRole, needsPassword: m.visibility === 'password', updatedAt: m.updatedAt, version: m.version, role });
+  });
+
+  // exchange (optional) password for a signed link token
+  r.post('/:id/access', (req, res) => {
+    const m = metas.get(req.params.id);
+    if (!m || m.visibility === 'private') return res.status(404).json({ error: 'Sunum bulunamadı ya da özel.' });
+    if (m.visibility === 'password') {
+      if (limited(`pw:${ip(req)}:${m.id}`, 8, 10 * 60 * 1000)) return res.status(429).json({ error: 'Çok fazla deneme. 10 dakika sonra tekrar dene.' });
+      const pw = typeof req.body?.password === 'string' ? req.body.password : '';
+      const hash = m.passwordSalt ? scryptSync(pw, m.passwordSalt, 32).toString('hex') : '';
+      if (!m.passwordHash || !safeEq(hash, m.passwordHash)) return res.status(401).json({ error: 'Şifre yanlış.' });
+    }
+    res.json({ token: sign(m.id, m.linkRole, m.gen), role: m.linkRole });
+  });
+
+  // content
+  r.get('/:id', async (req, res) => {
+    const m = metas.get(req.params.id);
+    const role = m ? roleOf(req, m) : null;
+    if (!m || !role) return res.status(m ? 403 : 404).json({ error: m ? 'Erişim yok' : 'Sunum bulunamadı' });
+    const presentation = JSON.parse(await readFile(dataPath(m.id), 'utf8'));
+    res.json({
+      presentation,
+      version: m.version,
+      role,
+      settings: role === 'owner' ? { visibility: m.visibility, linkRole: m.linkRole, hasPassword: !!m.passwordHash } : undefined,
+    });
+  });
+
+  // update content (owner or editor) with optimistic concurrency
+  r.put('/:id', async (req, res) => {
+    const m = metas.get(req.params.id);
+    const role = m ? roleOf(req, m) : null;
+    if (!m || !role) return res.status(m ? 403 : 404).json({ error: m ? 'Erişim yok' : 'Sunum bulunamadı' });
+    if (role === 'viewer') return res.status(403).json({ error: 'Bu bağlantı yalnızca izleme izni veriyor.' });
+    const { presentation, baseVersion, force } = req.body ?? {};
+    if (!validPresentation(presentation)) return res.status(400).json({ error: 'Geçersiz sunum' });
+    const result = await queued(m.id, async () => {
+      if (!force && baseVersion !== m.version) return { conflict: true as const };
+      const json = JSON.stringify(presentation);
+      if (totalBytes() - m.bytes + json.length > MAX_TOTAL_BYTES) return { full: true as const };
+      await atomicWrite(dataPath(m.id), json);
+      m.version++;
+      m.updatedAt = Date.now();
+      m.bytes = json.length;
+      m.title = str(presentation.title, 120) || m.title;
+      m.presenter = str(presentation.presenter, 80);
+      m.stepCount = presentation.steps.length;
+      await saveMeta(m);
+      return { ok: true as const };
+    });
+    if ('conflict' in result) return res.status(409).json({ error: 'Sunum başka biri tarafından güncellendi.', version: m.version });
+    if ('full' in result) return res.status(507).json({ error: 'Depolama kapasitesi dolu' });
+    io.to(`share:${m.id}`).emit('share:updated', { id: m.id, version: m.version, by: role });
+    res.json({ version: m.version });
+  });
+
+  // settings (owner only)
+  r.patch('/:id/settings', async (req, res) => {
+    const m = metas.get(req.params.id);
+    if (!m || roleOf(req, m) !== 'owner') return res.status(m ? 403 : 404).json({ error: 'Yalnızca sunum sahibi değiştirebilir.' });
+    const copy = { ...m };
+    const err = applySettings(copy, req.body ?? {});
+    if (err) return res.status(400).json({ error: err });
+    Object.assign(m, copy);
+    await queued(m.id, () => saveMeta(m));
+    io.to(`share:${m.id}`).emit('share:settings', { id: m.id });
+    res.json({ visibility: m.visibility, linkRole: m.linkRole, hasPassword: !!m.passwordHash });
+  });
+
+  // delete (owner only)
+  r.delete('/:id', async (req, res) => {
+    const m = metas.get(req.params.id);
+    if (!m || roleOf(req, m) !== 'owner') return res.status(m ? 403 : 404).json({ error: 'Yalnızca sunum sahibi silebilir.' });
+    metas.delete(m.id);
+    await queued(m.id, async () => {
+      await unlink(dataPath(m.id)).catch(() => undefined);
+      await unlink(metaPath(m.id)).catch(() => undefined);
+    });
+    io.to(`share:${m.id}`).emit('share:deleted', { id: m.id });
+    res.json({ ok: true });
+  });
+
+  /* ---------------- live change notifications ---------------- */
+  io.on('connection', (socket) => {
+    socket.on('share:watch', (p: { id?: string; token?: string; ownerKey?: string }) => {
+      const m = typeof p?.id === 'string' ? metas.get(p.id) : undefined;
+      if (!m) return;
+      const owner = typeof p.ownerKey === 'string' && safeEq(sha256(p.ownerKey), m.ownerKeyHash);
+      if (owner || verify(p.token, m)) socket.join(`share:${m.id}`);
+    });
+    socket.on('share:unwatch', (p: { id?: string }) => typeof p?.id === 'string' && socket.leave(`share:${p.id}`));
+  });
+
+  return r;
+}

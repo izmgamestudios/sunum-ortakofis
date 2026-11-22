@@ -160,3 +160,4 @@ vite.config.ts.timestamp-*
 dist-client/
 dist-server/
 .deploy.env
+data/

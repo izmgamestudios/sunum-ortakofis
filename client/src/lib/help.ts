@@ -211,6 +211,22 @@ export const GUIDE: GuideArticle[] = [
     goto: [{ label: '📊 Rapora git', view: 'report' }],
   },
   {
+    id: 'paylasim',
+    emoji: '🔗',
+    title: 'Sunumlarım ve paylaşım (özel / herkese açık / şifreli)',
+    category: 'Rapor & Veri',
+    summary: 'Birden fazla sunum, bağlantıyla paylaşım, izleyici veya düzenleyici rolü.',
+    sections: [
+      { h: 'Sunumlarım', p: ['Tüm sunumların bu cihazda saklanır. Sunumlarım sayfasında Özel, Paylaştıklarım, Benimle paylaşılan ve Keşfet (herkese açık) sekmeleri bulunur.'] },
+      { h: 'Görünürlük', ul: ['🔒 Özel: yalnızca sen. Bağlantı çalışmaz.', '🔗 Bağlantıya sahip olanlar: listelenmez, bağlantıyı bilen açar.', '🌍 Herkese açık: Keşfet’te listelenir.', '🔑 Şifreli: bağlantı + şifre.'] },
+      { h: 'Rol', ul: ['👀 Sadece izleme: anonim ziyaretçiler sunumu salt okunur görür (adımlar, tuval, medya).', '✏️ Düzenleme (admin): bağlantıyla gelen herkes içeriği değiştirebilir; değişiklikler otomatik kaydedilir ve diğerlerine anında yansır. Ayarları değiştirme ve silme yalnızca sahibindedir.'] },
+      { h: 'Sahiplik', p: ['Hesap gerekmez: sunumu ilk paylaşan kişiye gizli bir sahip anahtarı verilir ve bu tarayıcıda saklanır. Paylaş → “Sahip anahtarını yedekle” ile başka cihazda Sunumlarım → “Sahip anahtarıyla aç” kullanabilirsin.'] },
+      { h: 'Çakışmalar', p: ['İki kişi aynı anda değiştirirse uyarı çıkar: “Sunucudakini yükle” ya da “Benimkini kaydet”.'] },
+      { h: 'Gizlilik', p: ['Notlar, anonim sohbet ve konuşma dökümü varsayılan olarak paylaşılmaz; Paylaş penceresinden açabilirsin.'] },
+    ],
+    goto: [{ label: '🗂️ Sunumlarım', view: 'library' }],
+  },
+  {
     id: 'disa-aktarma',
     emoji: '💾',
     title: 'Dışa / içe aktarma ve .snmtdz',
@@ -278,6 +294,8 @@ export interface FaqItem {
 }
 
 export const FAQS: FaqItem[] = [
+  { tag: 'Veri', q: 'Sunumumu başkalarıyla nasıl paylaşırım?', a: 'Header’daki 🔗 Paylaş ile görünürlüğü (özel / bağlantıyla / herkese açık / şifreli) ve bağlantıyla gelenlerin rolünü (sadece izleme ya da düzenleme) seç. Ayarları yalnızca sunumu ilk paylaşan kişi değiştirebilir.' },
+  { tag: 'Veri', q: 'Düzenleme bağlantısıyla gelen biri sunumumu silebilir mi?', a: 'Hayır. Düzenleyiciler içeriği değiştirebilir ama paylaşım ayarlarını değiştiremez ve sunumu silemez; bunlar yalnızca sahibe aittir.' },
   { tag: 'Genel', q: 'Teknodoz Sunum nedir?', a: 'Adım adım, zaman kutulu sunum pratiği ve canlı sunum aracıdır: kum saati, zil, molalar, rol yapma, tuval, 60 düşünme modeli, kelime tombalası, anonim kitle sohbeti, konuşma dökümü ve otomatik SWOT raporu tek yerde.' },
   { tag: 'Genel', q: 'Ücretli mi? Beta ne demek?', a: 'Erken erişim (beta) sürecinde ücretsizdir. Beta, özelliklerin hâlâ geliştiği ve geri bildirimle şekillendiği anlamına gelir.' },
   { tag: 'Genel', q: 'Hesap açmam gerekiyor mu?', a: 'Hayır. Sunan kişi de katılımcılar da hesap açmadan kullanır; veriler cihazında saklanır.' },

@@ -8,6 +8,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { Server, type Socket } from 'socket.io';
+import type { Router } from 'express';
+import { createShareRouter } from './shares.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** Behind a reverse proxy (CloudPanel/nginx) bind to 127.0.0.1 so the app port is not publicly reachable. */
@@ -135,6 +137,11 @@ app.use(
 );
 app.use(compression());
 
+// shared presentations API — registered before the SPA fallback; the router is attached once socket.io exists
+let shareRouter: Router | null = null;
+app.use('/api/shares', (req, res, next) => (shareRouter ? shareRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
+app.use('/api', (_req, res, next) => (_req.path === '/health' ? next() : res.status(404).json({ error: 'Bulunamadı' })));
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, rooms: rooms.size, uptime: Math.round(process.uptime()) });
 });
@@ -152,11 +159,15 @@ function emitPeople(room: Room): void {
   io.to(room.code).emit('room:people', { count: names.length, names: names.slice(0, 300) });
 }
 
+const DATA_DIR = process.env.DATA_DIR ?? path.resolve(__dirname, '../data');
+
 const io = new Server(httpServer, {
   // canvas snapshots and downscaled images (validated per event)
   maxHttpBufferSize: 2_500_000,
   cors: IS_PROD ? undefined : { origin: true },
 });
+shareRouter = createShareRouter(io, DATA_DIR);
+
 
 io.on('connection', (socket: Socket) => {
   const chatBucket: RateBucket = { tokens: 5, updatedAt: Date.now() };

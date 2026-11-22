@@ -383,25 +383,37 @@ function clearVisited(nodes: Step['topicTree']): Step['topicTree'] {
 }
 
 /* ---------- persistence (IndexedDB, debounced) ---------- */
-let hydrateStarted = false;
-export async function hydrate(): Promise<void> {
-  if (hydrateStarted) return;
-  hydrateStarted = true;
+let hydratePromise: Promise<void> | null = null;
+/** Load the last session + library once; later calls return the same promise. */
+export function hydrate(): Promise<void> {
+  if (!hydratePromise) hydratePromise = doHydrate();
+  return hydratePromise;
+}
+
+async function doHydrate(): Promise<void> {
   try {
     const saved = await idbGet<{ pres: Presentation; view: View; live: LiveState }>(STORAGE_KEY);
     if (saved?.pres?.steps?.length) {
-      useApp.setState({ pres: normalizePresentation(saved.pres), view: saved.view ?? 'setup', live: saved.live ?? idleLive() });
+      const view = saved.view === 'faq' || saved.view === 'credits' ? 'setup' : saved.view;
+      useApp.setState({ pres: normalizePresentation(saved.pres), view: view ?? 'setup', live: saved.live ?? idleLive() });
     }
+    const { initLibrary } = await import('./lib/library');
+    await initLibrary(useApp.getState().pres);
   } catch (e) {
     console.warn('Kayıt okunamadı', e);
   } finally {
     useApp.setState({ hydrated: true });
   }
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let lastPres: Presentation | null = null;
   useApp.subscribe((s) => {
     clearTimeout(timer);
     timer = setTimeout(() => {
       idbSet(STORAGE_KEY, { pres: s.pres, view: s.view, live: s.live }).catch((e) => console.warn('Kayıt yazılamadı', e));
+      if (s.pres !== lastPres) {
+        lastPres = s.pres;
+        void import('./lib/library').then((m) => m.savePresentation(s.pres));
+      }
     }, 400);
   });
 }

@@ -1,5 +1,5 @@
 // client/src/components/Whiteboard.tsx — vector whiteboard: tools, groups/layer folders, transforms, zoom & pan
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Attachment, CanvasElement, CanvasGroup, CanvasTool } from '../types';
 import { uid } from '../lib/factory';
 import { downloadBlob, dataUrlToBlob, fileToAttachment } from '../lib/io';
@@ -193,15 +193,19 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
 
   // focus inline editor after the pointer sequence
   const editorKey = editor ? `${editor.id ?? 'new'}-${editor.x}-${editor.y}` : '';
-  useEffect(() => {
+  // focus right after the DOM update (before paint) so the very first keystroke lands in the editor;
+  // pointerdown.preventDefault() keeps the browser from moving focus away afterwards. rAF is a safety net.
+  useLayoutEffect(() => {
     if (!editorKey) return;
-    const raf = requestAnimationFrame(() => {
+    const focus = () => {
       const t = editorRef.current;
-      if (t) {
+      if (t && document.activeElement !== t) {
         t.focus({ preventScroll: true });
         t.setSelectionRange(t.value.length, t.value.length);
       }
-    });
+    };
+    focus();
+    const raf = requestAnimationFrame(focus);
     return () => cancelAnimationFrame(raf);
   }, [editorKey]);
 

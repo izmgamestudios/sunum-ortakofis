@@ -59,6 +59,16 @@ cd app && PORT=3030 ./scripts/deploy.sh     # sonraki güncellemeler: ./scripts/
 ```
 `scripts/deploy.sh`: git pull → `npm ci` → build → PM2 (`ecosystem.config.cjs`) → reboot'ta otomatik başlatma (crontab) → sağlık kontrolü. Uygulama `127.0.0.1:PORT` dinler; nginx/CloudPanel reverse proxy önünde durur.
 
+## Sunumlarım ve paylaşım
+
+- **Sunumlarım**: birden fazla sunum (IndexedDB). Sekmeler: Özel · Paylaştıklarım · Benimle paylaşılan · Keşfet.
+- **🔗 Paylaş**: görünürlük `özel` / `bağlantıyla` / `herkese açık` (Keşfet'te listelenir) / `şifreli`; bağlantıyla gelenlerin rolü `izleyici` (anonim, salt okunur) veya `düzenleyici` (admin: içeriği değiştirir; ayar ve silme yalnızca sahipte).
+- Hesap yok: sahip anahtarı tarayıcıda, sunucuda yalnızca hash'i saklanır. Şifreler scrypt ile hash'lenir, deneme hız sınırlıdır; erişim token'ları HMAC imzalıdır ve ayar değişince geçersizleşir.
+- Otomatik kayıt + sürüm kontrolü (çakışmada “sunucudakini yükle / benimkini kaydet”), değişiklikler açık oturumlara Socket.IO ile anında bildirilir.
+- Notlar, sohbet ve döküm varsayılan olarak paylaşılmaz.
+
+**Sunucu verisi:** paylaşılan sunumlar `DATA_DIR` (varsayılan `./data`, git'e girmez, deploy'da silinmez) altında JSON olarak tutulur. Yedek almak için bu klasörü kopyalaman yeterli. İmza anahtarı `SHARE_SECRET` ortam değişkeniyle verilebilir; verilmezse `data/.share-secret` dosyasında bir kez üretilir.
+
 ## 🌍 Açık kaynak — katkılarınızı bekliyoruz
 
 Teknodoz Sunum **MIT lisanslı açık kaynak** bir projedir: <https://github.com/izmgamestudios/sunum-ortakofis>

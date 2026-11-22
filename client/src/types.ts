@@ -217,4 +217,4 @@ export interface LiveState {
   flipKey: number;
 }
 
-export type View = 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits';
+export type View = 'library' | 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits';

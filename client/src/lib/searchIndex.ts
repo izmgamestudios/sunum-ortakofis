@@ -57,6 +57,7 @@ function staticItems(): SearchItem[] {
 
   /* --- menus --- */
   const top: [string, View, string][] = [
+    ['Sunumlarım', 'library', '🗂️'],
     ['Hazırlık', 'setup', '🛠️'],
     ['Sunum', 'live', '🎤'],
     ['Rapor', 'report', '📊'],
@@ -133,6 +134,10 @@ function staticItems(): SearchItem[] {
   add({ id: 'about-author', type: 'menu', title: AUTHOR.name, path: ['Hakkında', 'Geliştirici'], keywords: 'iletisim linkedin gelistirici kurucu', icon: '💼', run: nav('credits') });
   add({ id: 'about-wa', type: 'menu', title: 'WhatsApp ile iletişim', path: ['Hakkında', 'İletişim'], keywords: 'whatsapp iletisim telefon destek', icon: '💬', run: ext(AUTHOR.whatsapp) });
   add({ id: 'about-mail', type: 'menu', title: 'E-posta ile iletişim', path: ['Hakkında', 'İletişim'], keywords: `eposta mail iletisim ${AUTHOR.email}`, icon: '✉️', run: () => (window.location.href = `mailto:${AUTHOR.email}`) });
+
+  [['Özel sunumlar', 'ozel private gizli'], ['Paylaştıklarım', 'paylas shared link'], ['Benimle paylaşılan', 'duzenleyici editor'], ['Keşfet — herkese açık sunumlar', 'public galeri herkese acik']].forEach(([t, k]) =>
+    add({ id: `lib-${t}`, type: 'menu', title: t, path: ['Sunumlarım'], keywords: k, icon: '🗂️', run: nav('library') }),
+  );
 
   /* --- commands --- */
   const cmd = (title: string, run: () => void, keywords = '', icon = '⚡') => add({ id: `cmd-${title}`, type: 'command', title, path: ['Komut'], keywords, icon, run });

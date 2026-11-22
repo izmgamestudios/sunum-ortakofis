@@ -9,6 +9,9 @@ import { MAX_STEPS } from '../lib/factory';
 import type { View } from '../types';
 import { BetaBadge, FileMenu, Logo, useDismiss } from './Header';
 import { SearchPalette, SearchTrigger } from './Search';
+import { ShareDialog } from './ShareDialog';
+import { useCloud, pullNow, pushNow } from '../lib/cloud';
+import { useLibrary } from '../lib/library';
 import { ShortcutsModal, useGlobalShortcuts } from './Shortcuts';
 import { FAQS, GUIDE } from '../lib/help';
 import { keyLabel } from '../lib/shortcuts';
@@ -232,6 +235,48 @@ function ResourcesMega({ onPick }: { onPick: () => void }) {
 /* ------------------------------------------------------------------ */
 /* Header                                                              */
 /* ------------------------------------------------------------------ */
+/** Cloud sync state of the open presentation (only shown when it is shared). */
+function CloudChip() {
+  const presId = useApp((s) => s.pres.id);
+  const link = useLibrary((s) => s.entries.find((e) => e.id === presId)?.cloud);
+  const status = useCloud((s) => s.status);
+  if (!link) return null;
+  const map: Record<string, [string, string]> = {
+    saving: ['⏳', 'Kaydediliyor…'],
+    saved: ['☁️', 'Buluta kaydedildi'],
+    conflict: ['⚠️', 'Çakışma'],
+    error: ['⚠️', 'Kaydedilemedi'],
+    deleted: ['🚫', 'Paylaşım kaldırıldı'],
+    readonly: ['🔒', 'Düzenleme izni yok'],
+    local: ['☁️', 'Bulut'],
+  };
+  const [icon, label] = map[status] ?? map.saved;
+  return (
+    <span className={`cloud-chip cloud-chip--${status}`} title={`${label} · ${link.role === 'owner' ? 'sahibisin' : 'düzenleyicisin'}`}>
+      {icon} <span className="cloud-chip-label">{link.role === 'editor' ? '✏️ ' : ''}{label}</span>
+    </span>
+  );
+}
+
+function CloudBanner() {
+  const { status, message } = useCloud();
+  if (!['conflict', 'error', 'deleted', 'readonly'].includes(status)) return null;
+  return (
+    <div className={`cloud-banner cloud-banner--${status}`} role="alert">
+      <span>⚠️ {message}</span>
+      {status === 'conflict' && (
+        <span className="row gap-s">
+          <button className="btn btn-sm" onClick={() => void pullNow()}>⬇️ Sunucudakini yükle</button>
+          <button className="btn btn-sm" onClick={() => confirm('Sunucudaki değişikliklerin üzerine yazılsın mı?') && void pushNow(true)}>⬆️ Benimkini kaydet</button>
+        </span>
+      )}
+      {status === 'error' && (
+        <button className="btn btn-sm" onClick={() => void pushNow(false)}>↻ Tekrar dene</button>
+      )}
+    </div>
+  );
+}
+
 function SiteHeader() {
   const view = useApp((s) => s.view);
   const phase = useApp((s) => s.live.phase);
@@ -239,6 +284,7 @@ function SiteHeader() {
   const setDrawer = useApp((s) => s.setDrawer);
   const start = useApp((s) => s.start);
   const [mega, setMega] = useState<Mega>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const megaRef = useDismiss(mega !== null, () => setMega(null));
   const isLive = phase === 'step' || phase === 'break';
 
@@ -277,6 +323,7 @@ function SiteHeader() {
         </button>
 
         <nav className="main-nav show-lg-up" aria-label="Ana menü" ref={megaRef} onMouseLeave={() => setMega(null)}>
+          {navBtn('library', 'Sunumlarım')}
           {navBtn('setup', 'Hazırlık')}
           {navBtn('live', 'Sunum')}
           {navBtn('report', 'Rapor')}
@@ -290,6 +337,10 @@ function SiteHeader() {
         </nav>
 
         <div className="header-right">
+          <CloudChip />
+          <button className="btn btn-ghost header-share" onClick={() => setShareOpen(true)} title="Paylaş: özel / bağlantıyla / herkese açık / şifreli">
+            🔗 <span className="hide-md">Paylaş</span>
+          </button>
           <SearchTrigger />
           <ThemeSwitcher />
           <FileMenu />
@@ -298,11 +349,12 @@ function SiteHeader() {
             onClick={() => (isLive ? setView('live') : start())}
             title={isLive ? 'Sunuma dön' : 'Sunumu başlat'}
           >
-            <span className="hide-sm">{isLive ? 'Sunuma dön' : 'Sunumu başlat'}</span>
+            <span className="hide-md">{isLive ? 'Sunuma dön' : 'Sunumu başlat'}</span>
             <span aria-hidden>{isLive ? '↩' : '→'}</span>
           </button>
         </div>
       </div>
+      {shareOpen && <ShareDialog onClose={() => setShareOpen(false)} />}
     </header>
   );
 }
@@ -396,6 +448,11 @@ function SidebarNav() {
       <button className="side-cta" onClick={() => (isLive ? setView('live') : start())}>
         ⚡ {isLive ? `Sunuma dön · ${liveStep + 1}. adım` : 'Sunumu başlat'}
       </button>
+
+      <NavGroup title="Sunumlarım">
+        {item('🗂️ Tüm sunumlarım', view === 'library', () => setView('library'))}
+        {item('🌍 Keşfet (herkese açık)', false, () => setView('library'))}
+      </NavGroup>
 
       <NavGroup title="Hazırlık">
         {item('⚙️ Genel ayarlar', false, () => setView('setup'))}
@@ -547,7 +604,7 @@ function SiteFooter() {
 function BottomNav() {
   const view = useApp((s) => s.view);
   const phase = useApp((s) => s.live.phase);
-  const { setView, openTemplates, setDrawer, start } = useApp.getState();
+  const { setView, setDrawer, start } = useApp.getState();
   const isLive = phase === 'step' || phase === 'break';
   const tab = (label: string, icon: string, active: boolean, fn: () => void) => (
     <button className={`bottom-tab ${active ? 'is-active' : ''}`} onClick={fn} aria-current={active ? 'page' : undefined}>
@@ -560,7 +617,7 @@ function BottomNav() {
   return (
     <nav className="bottom-nav" aria-label="Alt menü">
       {tab('Hazırlık', '🛠️', view === 'setup', () => setView('setup'))}
-      {tab('Şablonlar', '📚', view === 'templates', () => openTemplates())}
+      {tab('Sunumlarım', '🗂️', view === 'library', () => setView('library'))}
       <button className="bottom-main" onClick={() => (isLive ? setView('live') : start())} aria-label={isLive ? 'Sunuma dön' : 'Sunumu başlat'}>
         {isLive ? '🎤' : '▶'}
       </button>
@@ -582,6 +639,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className={`app view-${view} ${focus ? 'is-focus' : 'with-bottom'}`}>
       {!focus && <AnnouncementBar />}
       <SiteHeader />
+      <CloudBanner />
       {showContext && <ContextBar />}
       <div className={`shell-body ${focus ? '' : 'has-sidebar'}`}>
         {!focus && (
