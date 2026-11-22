@@ -10,9 +10,10 @@ import { Whiteboard } from './Whiteboard';
 import { MediaPanel } from './Media';
 import { TombalaLive, TreeLive } from './Topics';
 import { ChatPanel, NotesPanel, RoomPanel } from './Panels';
+import { MicIndicator, TranscriptPanel } from './Transcript';
 
 type MainTab = 'canvas' | 'text' | 'media';
-type SideTab = 'flow' | 'notes' | 'chat' | 'room';
+type SideTab = 'flow' | 'speech' | 'notes' | 'chat' | 'room';
 
 function useNow(intervalMs = 250): number {
   const [now, setNow] = useState(() => Date.now());
@@ -106,6 +107,7 @@ export function LiveView() {
               {live.phase === 'break' ? 'Mola' : `${live.stepIndex + 1}/${pres.steps.length} · ${step.durationSec / 60} dk`}
               {live.pausedAt ? ' · ⏸ duraklatıldı' : ''}
             </span>
+            <MicIndicator />
           </div>
         </div>
         <ol className="step-dots" aria-label="Adımlar">
@@ -205,6 +207,7 @@ export function LiveView() {
               {(
                 [
                   ['flow', step.topicMode === 'tree' ? '🌳 Ağaç' : step.topicMode === 'tombala' ? '🎱 Tombala' : '🧭 Akış'],
+                  ['speech', '🎙️ Döküm'],
                   ['notes', '📝 Not'],
                   ['chat', `💬 Sohbet${unread > 0 && sideTab !== 'chat' ? ` (${unread})` : ''}`],
                   ['room', '📡 Oda'],
@@ -223,6 +226,7 @@ export function LiveView() {
               ) : (
                 <p className="muted empty">Serbest akış. Kurulumda bu adıma tombala ya da konu ağacı ekleyebilirsin.</p>
               ))}
+            {sideTab === 'speech' && <TranscriptPanel />}
             {sideTab === 'notes' && <NotesPanel />}
             {sideTab === 'chat' && <ChatPanel />}
             {sideTab === 'room' && <RoomPanel />}

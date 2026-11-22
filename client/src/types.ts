@@ -131,6 +131,8 @@ export interface RunLog {
   audiencePeak: number;
   suggestedWords: string[];
   bingoCount: number;
+  /** words / tree nodes auto-marked from speech transcript */
+  autoMarked: number;
 }
 
 export interface Swot {
@@ -158,6 +160,19 @@ export interface Presentation {
   run: RunLog;
   swot: Swot;
   reflection: string;
+  transcript: TranscriptSegment[];
+  templateId?: string;
+}
+
+export interface TranscriptSegment {
+  id: string;
+  stepIndex: number;
+  /** ms since presentation start */
+  at: number;
+  text: string;
+  source: 'speech' | 'manual';
+  /** tombala words / topic nodes matched in this segment */
+  matches: string[];
 }
 
 export type Phase = 'idle' | 'step' | 'break' | 'done';
@@ -175,4 +190,4 @@ export interface LiveState {
   flipKey: number;
 }
 
-export type View = 'setup' | 'live' | 'report';
+export type View = 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits';

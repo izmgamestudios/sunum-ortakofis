@@ -181,6 +181,11 @@ export function toMarkdown(p: Presentation): string {
     p.chat.forEach((c) => lines.push(`- **${c.name}** (${new Date(c.at).toLocaleTimeString('tr-TR')}): ${c.text}`));
     lines.push('');
   }
+  if (p.transcript?.length) {
+    lines.push('## Konuşma dökümü', '', `_${r.speech.words} kelime${r.speech.wpm ? ` · ${r.speech.wpm} kelime/dk` : ''} · dolgu %${(r.speech.fillerRate * 100).toFixed(1)}_`, '');
+    p.transcript.forEach((t) => lines.push(`- [${fmtDuration(Math.round(t.at / 1000))} · Adım ${t.stepIndex + 1}] ${t.text}${t.matches.length ? ` _(✨ ${t.matches.join(', ')})_` : ''}`));
+    lines.push('');
+  }
   const sw = r.swot;
   lines.push('## SWOT', '');
   (

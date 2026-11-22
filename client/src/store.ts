@@ -1,9 +1,10 @@
 // client/src/store.ts
 import { create } from 'zustand';
 import { get as idbGet, set as idbSet } from 'idb-keyval';
-import type { BreakActivity, ChatMessage, LiveState, Note, Presentation, Step, View } from './types';
-import { createPresentation, createStep, defaultDurationSec, MAX_STEPS, uid } from './lib/factory';
+import type { BreakActivity, ChatMessage, LiveState, Note, Presentation, Step, TopicNode, TranscriptSegment, View } from './types';
+import { createPresentation, createStep, defaultDurationSec, MAX_STEPS, normalizePresentation, uid } from './lib/factory';
 import { BREAK_ACTIVITIES, randomRoleplay, roleplaySentence } from './lib/catalog';
+import { findMentions } from './lib/speechMatch';
 
 const STORAGE_KEY = 'teknodoz-sunum:v1';
 
@@ -56,6 +57,8 @@ interface AppState {
   drawWord: (index: number) => string | null;
   toggleMarkWord: (index: number, word: string) => void;
   bingo: () => void;
+  addTranscript: (text: string, source: TranscriptSegment['source']) => string[];
+  removeTranscript: (id: string) => void;
 }
 
 function pickBreakActivity(p: Presentation, breakNo: number): BreakActivity {
@@ -171,8 +174,9 @@ export const useApp = create<AppState>((set, get) => {
           ...pres,
           notes: [],
           chat: [],
+          transcript: [],
           steps: pres.steps.map((s) => ({ ...s, drawnWords: [], markedWords: [], topicTree: clearVisited(s.topicTree) })),
-          run: { steps: [], breaks: [], reactions: {}, audiencePeak: 0, suggestedWords: [], bingoCount: 0, startedAt: Date.now() },
+          run: { steps: [], breaks: [], reactions: {}, audiencePeak: 0, suggestedWords: [], bingoCount: 0, autoMarked: 0, startedAt: Date.now() },
         }),
         view: 'live',
       });
@@ -262,6 +266,50 @@ export const useApp = create<AppState>((set, get) => {
       })),
 
     bingo: () => set((s) => ({ pres: { ...s.pres, run: { ...s.pres.run, bingoCount: s.pres.run.bingoCount + 1 } } })),
+
+    addTranscript: (text, source) => {
+      const { pres, live } = get();
+      const clean = text.trim();
+      if (!clean) return [];
+      const index = live.phase === 'step' || live.phase === 'break' ? live.stepIndex : 0;
+      const step = pres.steps[index];
+      const startedAt = pres.run.startedAt;
+      // tombala: any word of the bag spoken → drawn + marked
+      const wordHits = findMentions(clean, step.words.filter((w) => !step.markedWords.includes(w)));
+      // topic tree: unvisited node labels spoken → visited
+      const nodeLabels: string[] = [];
+      const walk = (ns: TopicNode[]) => ns.forEach((n) => { if (!n.visited) nodeLabels.push(n.label); walk(n.children); });
+      walk(step.topicTree);
+      const nodeHits = findMentions(clean, nodeLabels);
+      const markTree = (ns: TopicNode[]): TopicNode[] =>
+        ns.map((n) => ({ ...n, visited: n.visited || nodeHits.includes(n.label), children: markTree(n.children) }));
+      const seg: TranscriptSegment = {
+        id: uid(),
+        stepIndex: index,
+        at: startedAt ? Date.now() - startedAt : 0,
+        text: clean,
+        source,
+        matches: [...wordHits, ...nodeHits],
+      };
+      const steps = pres.steps.slice();
+      steps[index] = {
+        ...step,
+        drawnWords: [...step.drawnWords, ...wordHits.filter((w) => !step.drawnWords.includes(w))],
+        markedWords: [...step.markedWords, ...wordHits],
+        topicTree: nodeHits.length ? markTree(step.topicTree) : step.topicTree,
+      };
+      set({
+        pres: touch({
+          ...pres,
+          steps,
+          transcript: [...pres.transcript, seg].slice(-5000),
+          run: { ...pres.run, autoMarked: (pres.run.autoMarked ?? 0) + seg.matches.length },
+        }),
+      });
+      return seg.matches;
+    },
+
+    removeTranscript: (id) => set((s) => ({ pres: touch({ ...s.pres, transcript: s.pres.transcript.filter((t) => t.id !== id) }) })),
   };
 });
 
@@ -277,7 +325,7 @@ export async function hydrate(): Promise<void> {
   try {
     const saved = await idbGet<{ pres: Presentation; view: View; live: LiveState }>(STORAGE_KEY);
     if (saved?.pres?.steps?.length) {
-      useApp.setState({ pres: saved.pres, view: saved.view ?? 'setup', live: saved.live ?? idleLive() });
+      useApp.setState({ pres: normalizePresentation(saved.pres), view: saved.view ?? 'setup', live: saved.live ?? idleLive() });
     }
   } catch (e) {
     console.warn('Kayıt okunamadı', e);

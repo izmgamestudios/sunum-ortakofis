@@ -27,6 +27,9 @@ Kitle aynı ağdaysa telefondan `http://<bilgisayar-ip>:3001/?join=KOD` (veya QR
 | Konu akışı | Serbest · **Kelime tombalası** (torba + 3×3 kart, TOMBALA rozeti) · **Hiyerarşik konu ağacı** (girintili listeden içe aktarma) |
 | Canlı oda | Socket.IO: anonim sohbet, emoji tepkileri, kitleden tombala kelime önerisi, QR ile katılım, sohbet kilidi |
 | Notlar | Not / alıntı / aksiyon / fikir / soru — zaman damgalı, adım etiketli |
+| Konuşma dökümü | Web Speech API ile canlı yazıya dökme (tr-TR, en, de, ar). Söylenen **tombala kelimeleri ve konu ağacı başlıkları otomatik işaretlenir** (Türkçe ek/ünsüz yumuşaması duyarlı). Opsiyonel adım bazlı ses kaydı (MediaRecorder → Medya). Kelime/dk ve dolgu kelimesi analizi → rapor & SWOT. Firefox için metin yapıştırma yedeği |
+| Şablonlar | 10 kategoride 20 hazır sunum: girişimcilik, ekonomi, eğitim, sağlık, bilim, teknoloji, finans, siyaset & kamu, inanç & değerler, kişisel gelişim. Arama, kategori filtresi, rastgele öneriler |
+| SSS & Credits | Dosya menüsü ve Hazırlık sayfası altbilgisinden |
 | Rapor | Planlanan vs gerçekleşen, skorlar, rozetler, **otomatik + düzenlenebilir SWOT**, öz değerlendirme |
 | Dışa aktarma | **.snmtdz** (gzip JSON, kendi formatı), JSON, Markdown, PDF, yazdır. İçe aktarma: .snmtdz / .json |
 
@@ -35,5 +38,7 @@ Kısayollar: `←/→` adım, `Boşluk` duraklat.
 ## Mimari
 
 - `server/index.ts` — Express + Socket.IO, helmet CSP, token bucket rate-limit, oda TTL (6 saat), sunucu token’ı ile yetki.
+- `client/src/lib/speechMatch.ts` — saf, test edilebilir Türkçe eşleştirme (`findMentions`, `speechStats`).
+- `client/src/lib/templates.ts` — şablon seed verisi.
 - `client/src` — Vite + React + TypeScript + Zustand; veriler IndexedDB’de (medya dahil) saklanır.
 - PDF, Türkçe karakter sorunu olmaması için `html2canvas-pro` + `jsPDF` ile rasterize edilir (lazy-load).

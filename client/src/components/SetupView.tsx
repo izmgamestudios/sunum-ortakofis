@@ -162,6 +162,9 @@ export function SetupView() {
           <input className="input" style={{ maxWidth: 240 }} placeholder="Sunan kişi" value={pres.presenter} onChange={(e) => updatePres({ presenter: e.target.value })} />
           <input className="input" style={{ maxWidth: 240 }} placeholder="Hedef kitle" value={pres.audience} onChange={(e) => updatePres({ audience: e.target.value })} />
         </div>
+        <button className="btn btn-ghost" onClick={() => setView('templates')}>
+          📚 Şablondan başla — girişimcilik, eğitim, sağlık, bilim…
+        </button>
       </section>
 
       <div className="setup-grid">
@@ -220,6 +223,12 @@ export function SetupView() {
           <StepEditor key={pres.steps[idx].id} index={idx} step={pres.steps[idx]} />
         </section>
       </div>
+
+      <footer className="app-footer small muted">
+        <button className="link-btn" onClick={() => setView('templates')}>Şablonlar</button> ·{' '}
+        <button className="link-btn" onClick={() => setView('faq')}>SSS</button> ·{' '}
+        <button className="link-btn" onClick={() => setView('credits')}>Credits</button> · Teknodoz Sunum Beta
+      </footer>
 
       <div className="start-bar">
         {isLive ? (

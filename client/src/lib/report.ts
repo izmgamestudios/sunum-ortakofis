@@ -1,5 +1,6 @@
 // client/src/lib/report.ts
 import type { Emotion, NoteKind, Presentation, Swot, TopicNode } from '../types';
+import { speechStats, type SpeechStats } from './speechMatch';
 
 export function fmtDuration(totalSec: number): string {
   const s = Math.max(0, Math.round(totalSec));
@@ -59,6 +60,7 @@ export interface Report {
   swot: Swot;
   autoSwot: Swot;
   badges: { emoji: string; label: string }[];
+  speech: SpeechStats & { wpm: number | null; autoMarked: number; segments: number };
 }
 
 const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
@@ -115,6 +117,16 @@ export function buildReport(p: Presentation): Report {
   p.notes.forEach((n) => (notesByKind[n.kind] = (notesByKind[n.kind] ?? 0) + 1));
   const emotionsUsed = Array.from(new Set(p.run.steps.map((r) => r.emotion).filter((e): e is Emotion => !!e)));
 
+  /* ---------- speech ---------- */
+  const st = speechStats((p.transcript ?? []).map((t) => t.text));
+  const speechSec = (p.transcript ?? []).length ? actualSec : 0;
+  const speech = {
+    ...st,
+    wpm: st.words >= 30 && speechSec > 0 ? Math.round(st.words / (speechSec / 60)) : null,
+    autoMarked: p.run.autoMarked ?? 0,
+    segments: (p.transcript ?? []).length,
+  };
+
   /* ---------- automatic SWOT ---------- */
   const auto: Swot = { strengths: [], weaknesses: [], opportunities: [], threats: [] };
   const over = done.filter((s) => (s.deviationPct ?? 0) > 15);
@@ -128,6 +140,9 @@ export function buildReport(p: Presentation): Report {
   if (emotionsUsed.length >= 3) auto.strengths.push(`${emotionsUsed.length} farklı duygu ile sunum yaptın — sahne esnekliği.`);
   if (notesByKind.quote >= 2) auto.strengths.push(`${notesByKind.quote} alıntılanabilir cümle üretildi.`);
   if (p.run.breaks.length && !skippedBreaks) auto.strengths.push('Molalar düzenli kullanıldı — enerji yönetimi iyi.');
+  if (speech.words >= 100 && speech.fillerRate < 0.015) auto.strengths.push(`Akıcı konuşma: dolgu kelimesi oranı %${(speech.fillerRate * 100).toFixed(1)}.`);
+  if (speech.wpm != null && speech.wpm >= 110 && speech.wpm <= 160) auto.strengths.push(`Konuşma hızı ideal aralıkta (${speech.wpm} kelime/dk).`);
+  if (speech.autoMarked >= 3) auto.strengths.push(`${speech.autoMarked} anahtar kelime/başlık konuşmada doğal olarak geçti (otomatik tespit).`);
 
   over.forEach((s) => auto.weaknesses.push(`${s.index + 1}. adım planı %${s.deviationPct} aştı (${fmtDuration(s.actualSec ?? 0)} / ${fmtDuration(s.plannedSec)}).`));
   if (under.length) auto.weaknesses.push(`${under.length} adım erken bitti — içerik derinliği artırılabilir.`);
@@ -135,6 +150,10 @@ export function buildReport(p: Presentation): Report {
   if (wordCov != null && wordCov < 0.4) auto.weaknesses.push('Çekilen tombala kelimelerinin çoğu konuşmaya bağlanamadı.');
   if (skippedBreaks) auto.weaknesses.push(`${skippedBreaks} mola atlandı / çok kısa tutuldu.`);
   if (!p.notes.length) auto.weaknesses.push('Sunum sırasında hiç not alınmadı — kazanımlar kaybolabilir.');
+  if (speech.words >= 50 && speech.fillerRate >= 0.03)
+    auto.weaknesses.push(`Dolgu kelimeleri yüksek (%${(speech.fillerRate * 100).toFixed(1)}${speech.topFillers[0] ? `, en çok “${speech.topFillers[0][0]}”` : ''}) — duraksamayı sessizlikle değiştir.`);
+  if (speech.wpm != null && speech.wpm > 170) auto.weaknesses.push(`Konuşma hızı yüksek (${speech.wpm} kelime/dk) — kitle takip etmekte zorlanabilir.`);
+  if (speech.wpm != null && speech.wpm < 90) auto.weaknesses.push(`Konuşma hızı düşük (${speech.wpm} kelime/dk) — enerji düşük algılanabilir.`);
 
   if (questions) auto.opportunities.push(`Kitleden ${questions} soru geldi — SSS, blog veya takip içeriğine dönüştür.`);
   if (notesByKind.action) auto.opportunities.push(`${notesByKind.action} aksiyon maddesi çıktı — sprint backlog'una aktar.`);
@@ -142,6 +161,8 @@ export function buildReport(p: Presentation): Report {
   if (p.run.suggestedWords.length) auto.opportunities.push(`Kitle ${p.run.suggestedWords.length} kelime önerdi — bir sonraki tombala havuzuna ekle.`);
   if (audienceMsgs >= 5) auto.opportunities.push('Aktif sohbet katılımcılarını topluluk kanalına davet et.');
   if (p.run.audiencePeak > 0) auto.opportunities.push(`Zirvede ${p.run.audiencePeak} eş zamanlı bağlantı — tekrar eden etkinliğe dönüştürülebilir.`);
+  if (speech.words >= 200) auto.opportunities.push(`${speech.words} kelimelik döküm hazır — blog yazısı, bülten veya altyazıya dönüştür.`);
+  if (!speech.segments) auto.opportunities.push('Döküm sekmesinden canlı yazıya dökmeyi aç — konuşma hızı ve dolgu kelimesi analizi alırsın.');
   if (!p.roleplay.enabled) auto.opportunities.push('Rol yapma modunu dene — farklı duygu/ortam provası anlatımı güçlendirir.');
 
   if (actualSec > plannedSec * 1.1) auto.threats.push(`Toplam süre planı %${Math.round(((actualSec - plannedSec) / plannedSec) * 100)} aştı — gerçek etkinlikte programdan sarkma riski.`);
@@ -168,6 +189,8 @@ export function buildReport(p: Presentation): Report {
   if (p.run.breaks.length && !skippedBreaks) badges.push({ emoji: '🫁', label: 'Nefes Disiplini' });
   if (p.notes.length >= 10) badges.push({ emoji: '📝', label: 'Kayıt Makinesi' });
   if (completion === 1) badges.push({ emoji: '🏁', label: 'Tüm Adımlar Tamam' });
+  if (speech.words >= 100 && speech.fillerRate < 0.01) badges.push({ emoji: '🎙️', label: 'Akıcı Konuşmacı' });
+  if (speech.autoMarked >= 5) badges.push({ emoji: '🎯', label: 'Kelime Avcısı' });
 
   return {
     steps,
@@ -187,5 +210,6 @@ export function buildReport(p: Presentation): Report {
     swot,
     autoSwot: auto,
     badges,
+    speech,
   };
 }

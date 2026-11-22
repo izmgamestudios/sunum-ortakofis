@@ -40,7 +40,9 @@ export function Header() {
   return (
     <header className="app-header">
       <div className="brand">
-        <Logo small />
+        <button className="logo-btn" onClick={() => setView('setup')} aria-label="Ana sayfa">
+          <Logo small />
+        </button>
         <BetaBadge />
       </div>
       <nav className="tabs" aria-label="Görünüm">
@@ -68,6 +70,10 @@ export function Header() {
             <button role="menuitem" onClick={() => exportJson(pres)}>🧾 Dışa aktar JSON</button>
             <button role="menuitem" onClick={() => exportMarkdown(pres)}>📝 Dışa aktar Markdown</button>
             <button role="menuitem" onClick={() => setView('report')}>📄 PDF rapor (Rapor sekmesi)</button>
+            <hr />
+            <button role="menuitem" onClick={() => setView('templates')}>📚 Şablonlar</button>
+            <button role="menuitem" onClick={() => setView('faq')}>❓ SSS</button>
+            <button role="menuitem" onClick={() => setView('credits')}>🙏 Credits</button>
           </div>
         )}
       </div>

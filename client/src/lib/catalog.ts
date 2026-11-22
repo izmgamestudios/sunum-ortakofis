@@ -92,7 +92,7 @@ export function roleplaySentence(r: RoleplayConfig): string {
   const e = EMOTIONS[r.emotion];
   const s = SETTINGS[r.setting];
   const t = TIMES[r.timeOfDay];
-  return `${e.emoji} ${e.label} bir ruh hâliyle, ${TONES[r.tone].label.toLowerCase()} bir tonda — ${s.emoji} ${s.label.toLowerCase()}, ${t.emoji} ${t.label.toLowerCase()} saatinde, ${CROWD[r.crowd].toLowerCase()} kitleye anlat.`;
+  return `${e.emoji} ${e.label} bir ruh hâliyle, ${TONES[r.tone].label.toLocaleLowerCase('tr-TR')} bir tonda — ${s.emoji} ${s.label.toLocaleLowerCase('tr-TR')}, ${t.emoji} ${t.label.toLocaleLowerCase('tr-TR')} saatinde, ${CROWD[r.crowd].toLocaleLowerCase('tr-TR')} kitleye anlat.`;
 }
 
 export function roleplayTips(r: RoleplayConfig): string[] {

@@ -180,6 +180,22 @@ export function ReportView() {
             <b>{pres.run.audiencePeak}</b>
             <span>zirve katılımcı</span>
           </div>
+          {report.speech.segments > 0 && (
+            <>
+              <div className="kpi">
+                <b>{report.speech.wpm ?? '—'}</b>
+                <span>kelime/dk · {report.speech.words} kelime</span>
+              </div>
+              <div className="kpi">
+                <b>%{(report.speech.fillerRate * 100).toFixed(1)}</b>
+                <span>dolgu {report.speech.topFillers[0] ? `· “${report.speech.topFillers[0][0]}”` : ''}</span>
+              </div>
+              <div className="kpi">
+                <b>{report.speech.autoMarked}</b>
+                <span>otomatik işaretleme</span>
+              </div>
+            </>
+          )}
         </section>
 
         <section>
@@ -299,6 +315,30 @@ export function ReportView() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {pres.transcript.length > 0 && (
+          <section>
+            <h2>🎙️ Konuşma dökümü</h2>
+            {pres.steps.map((st, i) => {
+              const segs = pres.transcript.filter((t) => t.stepIndex === i);
+              if (!segs.length) return null;
+              return (
+                <div key={st.id} className="transcript-block">
+                  <h3 className="small">
+                    {i + 1}. {st.title}
+                  </h3>
+                  <p className="transcript-text">
+                    {segs.map((t) => (
+                      <span key={t.id} className={t.matches.length ? 'has-match' : ''} title={t.matches.join(', ')}>
+                        {t.text}{' '}
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              );
+            })}
           </section>
         )}
 

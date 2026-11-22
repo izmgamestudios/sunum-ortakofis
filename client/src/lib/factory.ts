@@ -55,9 +55,10 @@ export function createPresentation(stepCount = 6): Presentation {
     autoAdvance: false,
     notes: [],
     chat: [],
-    run: { steps: [], breaks: [], reactions: {}, audiencePeak: 0, suggestedWords: [], bingoCount: 0 },
+    run: { steps: [], breaks: [], reactions: {}, audiencePeak: 0, suggestedWords: [], bingoCount: 0, autoMarked: 0 },
     swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
     reflection: '',
+    transcript: [],
   };
 }
 
@@ -80,5 +81,6 @@ export function normalizePresentation(raw: unknown): Presentation {
     swot: { ...base.swot, ...r.swot },
     notes: Array.isArray(r.notes) ? r.notes : [],
     chat: Array.isArray(r.chat) ? r.chat : [],
+    transcript: Array.isArray(r.transcript) ? r.transcript : [],
   };
 }
