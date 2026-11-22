@@ -9,7 +9,6 @@ import { RoleplaySettings } from './Roleplay';
 import { MediaPanel } from './Media';
 import { Whiteboard } from './Whiteboard';
 import { TombalaEditor, TreeEditor } from './Topics';
-import { BetaBadge, Logo } from './Header';
 
 type EditorTab = 'text' | 'media' | 'canvas' | 'flow';
 
@@ -145,7 +144,8 @@ export function SetupView() {
   const resetDurations = useApp((s) => s.resetDurations);
   const start = useApp((s) => s.start);
   const setView = useApp((s) => s.setView);
-  const [active, setActive] = useState(0);
+  const active = useApp((s) => s.activeStep);
+  const setActive = useApp((s) => s.setActiveStep);
   const idx = Math.min(active, pres.steps.length - 1);
   const total = pres.steps.reduce((a, s) => a + s.durationSec, 0);
   const breakCount = pres.breakConfig.mode === 'none' ? 0 : pres.steps.length - 1;
@@ -155,8 +155,6 @@ export function SetupView() {
   return (
     <main className="setup">
       <section className="hero">
-        <Logo />
-        <BetaBadge />
         <input className="input hero-title" value={pres.title} onChange={(e) => updatePres({ title: e.target.value })} aria-label="Sunum başlığı" />
         <div className="row gap-s wrap center">
           <input className="input" style={{ maxWidth: 240 }} placeholder="Sunan kişi" value={pres.presenter} onChange={(e) => updatePres({ presenter: e.target.value })} />

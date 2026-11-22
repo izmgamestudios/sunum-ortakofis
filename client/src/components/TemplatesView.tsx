@@ -1,5 +1,5 @@
 // client/src/components/TemplatesView.tsx
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { CATEGORIES, presentationFromTemplate, TEMPLATES, totalMinutes, type PresentationTemplate, type TemplateCategory } from '../lib/templates';
 import { EMOTIONS, SETTINGS } from '../lib/catalog';
@@ -59,7 +59,9 @@ function TemplateCard({ t, onUse }: { t: PresentationTemplate; onUse: (t: Presen
 export function TemplatesView() {
   const load = useApp((s) => s.loadPresentation);
   const setView = useApp((s) => s.setView);
-  const [cat, setCat] = useState<TemplateCategory | 'all'>('all');
+  const initialCat = useApp((s) => s.templateCategory) as TemplateCategory | 'all';
+  const [cat, setCat] = useState<TemplateCategory | 'all'>(initialCat);
+  useEffect(() => setCat(initialCat), [initialCat]);
   const [q, setQ] = useState('');
 
   const recommended = useMemo(() => {

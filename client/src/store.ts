@@ -30,6 +30,13 @@ export function phaseElapsedMs(live: LiveState, now = Date.now()): number {
 interface AppState {
   hydrated: boolean;
   view: View;
+  /** UI-only: selected step in the editor, template filter from mega menu, mobile drawer */
+  activeStep: number;
+  templateCategory: string;
+  drawerOpen: boolean;
+  setActiveStep: (i: number) => void;
+  openTemplates: (category?: string) => void;
+  setDrawer: (open: boolean) => void;
   pres: Presentation;
   live: LiveState;
   setView: (v: View) => void;
@@ -135,10 +142,19 @@ export const useApp = create<AppState>((set, get) => {
   return {
     hydrated: false,
     view: 'setup',
+    activeStep: 0,
+    templateCategory: 'all',
+    drawerOpen: false,
+    setActiveStep: (activeStep) => set({ activeStep, view: 'setup', drawerOpen: false }),
+    openTemplates: (category = 'all') => set({ view: 'templates', templateCategory: category, drawerOpen: false }),
+    setDrawer: (drawerOpen) => set({ drawerOpen }),
     pres: createPresentation(6),
     live: idleLive(),
 
-    setView: (view) => set({ view }),
+    setView: (view) => {
+      set({ view, drawerOpen: false });
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+    },
 
     updatePres: (patch) =>
       set((s) => ({ pres: touch({ ...s.pres, ...(typeof patch === 'function' ? patch(s.pres) : patch) }) })),

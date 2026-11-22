@@ -1,7 +1,7 @@
 // client/src/App.tsx
 import { useEffect } from 'react';
 import { hydrate, useApp } from './store';
-import { Header } from './components/Header';
+import { Shell } from './components/Shell';
 import { SetupView } from './components/SetupView';
 import { LiveView } from './components/LiveView';
 import { ReportView } from './components/ReportView';
@@ -21,15 +21,14 @@ function PresenterApp() {
 
   if (!hydrated) return <div className="splash">⏳</div>;
   return (
-    <div className={`app view-${view}`}>
-      <Header />
+    <Shell>
       {view === 'setup' && <SetupView />}
       {view === 'live' && <LiveView />}
       {view === 'report' && <ReportView />}
       {view === 'templates' && <TemplatesView />}
       {view === 'faq' && <FaqView />}
       {view === 'credits' && <CreditsView />}
-    </div>
+    </Shell>
   );
 }
 
