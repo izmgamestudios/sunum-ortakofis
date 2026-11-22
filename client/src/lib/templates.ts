@@ -1,6 +1,6 @@
 // client/src/lib/templates.ts
-import type { Presentation, RoleplayConfig } from '../types';
-import { createNode, createPresentation, createStep } from './factory';
+import type { CanvasElement, CanvasGroup, Presentation, RoleplayConfig } from '../types';
+import { createNode, createPresentation, createStep, uid } from './factory';
 import { parseOutline } from './outline';
 import { FRAMEWORKS, FW_GROUPS, frameworkById } from './frameworks';
 import { buildFramework } from './frameworkDraw';
@@ -389,6 +389,14 @@ const BASE_TEMPLATES: PresentationTemplate[] = [
 
 const firstLine = (p: string) => p.split('\n')[0].trim();
 
+/** Framework infographic as one group whose children are position-locked. */
+function frameworkCanvas(id?: number): { canvas: CanvasElement[]; groups: CanvasGroup[] } {
+  const fw = id ? frameworkById(id) : undefined;
+  if (!fw) return { canvas: [], groups: [] };
+  const g: CanvasGroup = { id: uid(), name: fw.name, lockChildren: true, frameworkId: fw.id };
+  return { canvas: buildFramework(fw).map((e) => ({ ...e, groupId: g.id })), groups: [g] };
+}
+
 /** One 3-step template per framework: the model (diagram on canvas) → your example (parts as tombala) → action plan. */
 const FRAMEWORK_TEMPLATES: PresentationTemplate[] = FRAMEWORKS.map((fw) => {
   const parts = fw.parts.map(firstLine);
@@ -425,7 +433,7 @@ export function presentationFromTemplate(t: PresentationTemplate): Presentation 
       topicMode: s.words ? 'tombala' : s.tree || s.nodes ? 'tree' : 'free',
       words: s.words ?? [],
       topicTree: s.nodes ? s.nodes.map((n) => createNode(n)) : s.tree ? parseOutline(s.tree) : [],
-      canvas: s.framework && frameworkById(s.framework) ? buildFramework(frameworkById(s.framework)!) : [],
+      ...frameworkCanvas(s.framework),
     })),
   };
 }

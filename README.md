@@ -58,3 +58,24 @@ git clone -b claude/nodejs-presentation-app-zu7ljh git@github.com:izmgamestudios
 cd app && PORT=3030 ./scripts/deploy.sh     # sonraki güncellemeler: ./scripts/deploy.sh (ayarlar .deploy.env içinde)
 ```
 `scripts/deploy.sh`: git pull → `npm ci` → build → PM2 (`ecosystem.config.cjs`) → reboot'ta otomatik başlatma (crontab) → sağlık kontrolü. Uygulama `127.0.0.1:PORT` dinler; nginx/CloudPanel reverse proxy önünde durur.
+
+## 🌍 Açık kaynak — katkılarınızı bekliyoruz
+
+Teknodoz Sunum **MIT lisanslı açık kaynak** bir projedir: <https://github.com/izmgamestudios/sunum-ortakofis>
+
+- ⭐ Repoya yıldız ver ve paylaş.
+- 🐛 Hata ve önerileri [Issues](https://github.com/izmgamestudios/sunum-ortakofis/issues) üzerinden ilet.
+- 🔀 Repoyu klonlayıp kendi projelerinde (private veya public) kullanabilir, geliştirmelerini Pull Request olarak önerebilirsin. Ayrıntılar: [CONTRIBUTING.md](CONTRIBUTING.md)
+
+```bash
+git clone https://github.com/izmgamestudios/sunum-ortakofis.git
+cd sunum-ortakofis && npm install && npm run dev
+```
+
+## İletişim
+
+**Hüseyin Bayer** — izmgamestudios · Teknodoz
+
+- LinkedIn: <https://www.linkedin.com/in/huseyin-bayer-izmgamestudios/>
+- E-posta: <izmgamestudios@gmail.com>
+- Telefon / WhatsApp: 0541 770 92 05 · <https://wa.me/905417709205>

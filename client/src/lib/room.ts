@@ -4,6 +4,7 @@ import { emitAck, getSocket } from './socket';
 import { useApp } from '../store';
 import type { ChatMessage } from '../types';
 import { roleplaySentence } from './catalog';
+import { visibleElements } from './canvasGroups';
 
 interface Suggestion {
   id: string;
@@ -22,6 +23,8 @@ interface RoomState {
   code: string | null;
   connected: boolean;
   count: number;
+  /** anonymous names of connected audience members */
+  people: string[];
   chatLocked: boolean;
   error: string | null;
   suggestions: Suggestion[];
@@ -41,6 +44,7 @@ export const useRoom = create<RoomState>((set, get) => ({
   code: null,
   connected: false,
   count: 0,
+  people: [],
   chatLocked: false,
   error: null,
   suggestions: [],
@@ -56,7 +60,9 @@ export const useRoom = create<RoomState>((set, get) => ({
         const r = await emitAck<{ ok: boolean; code?: string }>('presenter:resume', saved);
         if (r.ok && r.code) {
           set({ code: r.code, connected: true, error: null });
+          sentAssets.clear();
           pushState();
+          pushCanvas(true);
           return;
         }
       }
@@ -70,7 +76,9 @@ export const useRoom = create<RoomState>((set, get) => ({
         /* private mode */
       }
       set({ code: r.code, connected: true, error: null });
+      sentAssets.clear();
       pushState();
+      pushCanvas(true);
     } catch (e) {
       set({ error: e instanceof Error ? e.message : 'Sunucuya bağlanılamadı', connected: false });
     }
@@ -146,6 +154,7 @@ function wire(): void {
     useRoom.setState((st) => ({ floating: [...st.floating.slice(-20), { id, emoji: r.emoji, x: 10 + Math.random() * 80 }] }));
     setTimeout(() => useRoom.setState((st) => ({ floating: st.floating.filter((f) => f.id !== id) })), 2600);
   });
+  s.on('room:people', (p: { count: number; names: string[] }) => useRoom.setState({ people: p.names }));
   s.on('word:suggested', (w: Suggestion) => {
     useApp.getState().addSuggestedWord(w.word);
     useRoom.setState((st) => ({ suggestions: [...st.suggestions, w].slice(-30) }));
@@ -159,5 +168,70 @@ function wire(): void {
       lastSig = sig;
       pushState();
     }
+    // live canvas mirror (throttled)
+    const step = st.pres.steps[st.live.stepIndex];
+    if (step && (step.canvas !== lastCanvas || step.groups !== lastGroups || st.live.stepIndex !== lastCanvasStep)) {
+      lastCanvas = step.canvas;
+      lastGroups = step.groups;
+      lastCanvasStep = st.live.stepIndex;
+      pushCanvas();
+    }
   });
+}
+
+/* ---------------- live canvas mirror for the audience ---------------- */
+let lastCanvas: unknown = null;
+let lastGroups: unknown = null;
+let lastCanvasStep = -1;
+let canvasTimer: ReturnType<typeof setTimeout> | undefined;
+const sentAssets = new Set<string>();
+
+/** Downscale an image data URL so it fits the socket budget (≤ 1280 px, JPEG). */
+function downscale(src: string, max = 1280): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k));
+      c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      const ctx = c.getContext('2d')!;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      try {
+        let out = c.toDataURL('image/jpeg', 0.82);
+        if (out.length > 1_500_000) out = c.toDataURL('image/jpeg', 0.6);
+        resolve(out.length <= 1_550_000 ? out : null);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+export function pushCanvas(immediate = false): void {
+  clearTimeout(canvasTimer);
+  canvasTimer = setTimeout(
+    async () => {
+      if (!useRoom.getState().code) return;
+      const { pres, live } = useApp.getState();
+      const step = pres.steps[live.stepIndex];
+      if (!step) return;
+      const elements = visibleElements(step.canvas, step.groups).map(({ groupId: _g, frameworkId: _f, locked: _l, ...rest }) => rest);
+      const used = new Set(elements.map((e) => e.attachmentId).filter(Boolean));
+      const atts = step.attachments.filter((a) => used.has(a.id)).map((a) => ({ id: a.id, kind: a.kind, name: a.name, url: a.dataUrl ? undefined : a.url }));
+      const sock = getSocket();
+      sock.emit('canvas:update', { stepIndex: live.stepIndex, elements, atts });
+      for (const a of step.attachments) {
+        if (!used.has(a.id) || a.kind !== 'image' || !a.dataUrl || sentAssets.has(a.id)) continue;
+        sentAssets.add(a.id);
+        const small = await downscale(a.dataUrl);
+        if (small) sock.emit('canvas:asset', { id: a.id, dataUrl: small });
+      }
+    },
+    immediate ? 0 : 350,
+  );
 }

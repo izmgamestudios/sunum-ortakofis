@@ -10,6 +10,7 @@ import { FAQS, GUIDE, TROUBLESHOOT } from './help';
 import { SHORTCUTS, shortcutText } from './shortcuts';
 import { BREAK_ACTIVITIES, EMOTIONS, SETTINGS, TIMES, TONES } from './catalog';
 import { foldTr } from './speechMatch';
+import { AUTHOR, REPO } from './about';
 import type { View } from '../types';
 
 export type SearchType = 'menu' | 'command' | 'content' | 'template' | 'model' | 'guide' | 'faq' | 'shortcut';
@@ -61,7 +62,7 @@ function staticItems(): SearchItem[] {
     ['Rapor', 'report', '📊'],
     ['Şablonlar', 'templates', '📚'],
     ['Yardım merkezi', 'faq', '❓'],
-    ['Credits', 'credits', '🙏'],
+    ['Hakkında & Credits', 'credits', '🙏'],
   ];
   top.forEach(([t, v, ic]) => add({ id: `m-top-${v}`, type: 'menu', title: t, path: ['Menüler', 'Üst menü'], icon: ic, run: nav(v) }));
   Object.entries(CATEGORIES).forEach(([k, c]) =>
@@ -124,6 +125,14 @@ function staticItems(): SearchItem[] {
     ['Skorlar & rozetler', 'report-scores'], ['Adım adım zaman', 'report-time'], ['SWOT analizi', 'report-swot'], ['Adım detayları', 'report-steps'],
     ['Notlar & alıntılar', 'report-notes'], ['Anonim sohbet dökümü', 'report-chat'], ['Konuşma dökümü', 'report-transcript'], ['Öz değerlendirme', 'report-reflection'], ['PDF / .snmtdz / JSON / Markdown', 'report-export'],
   ].forEach(([t, a]) => add({ id: `r-${a}`, type: 'menu', title: t, path: ['Rapor'], keywords: 'rapor analiz', icon: '📊', run: nav('report', a) }));
+
+  /* --- about / contact / open source --- */
+  const ext = (url: string) => () => window.open(url, '_blank', 'noopener,noreferrer');
+  add({ id: 'about-oss', type: 'menu', title: 'Açık kaynak — GitHub', path: ['Hakkında'], keywords: 'github repo kaynak kod katki fork klon pull request mit lisans', icon: '⭐', run: ext(REPO.url) });
+  add({ id: 'about-issues', type: 'menu', title: 'Hata bildir / öneri (GitHub Issues)', path: ['Hakkında', 'Destek'], keywords: 'issue hata bug oneri', icon: '🐛', run: ext(REPO.issues) });
+  add({ id: 'about-author', type: 'menu', title: AUTHOR.name, path: ['Hakkında', 'Geliştirici'], keywords: 'iletisim linkedin gelistirici kurucu', icon: '💼', run: nav('credits') });
+  add({ id: 'about-wa', type: 'menu', title: 'WhatsApp ile iletişim', path: ['Hakkında', 'İletişim'], keywords: 'whatsapp iletisim telefon destek', icon: '💬', run: ext(AUTHOR.whatsapp) });
+  add({ id: 'about-mail', type: 'menu', title: 'E-posta ile iletişim', path: ['Hakkında', 'İletişim'], keywords: `eposta mail iletisim ${AUTHOR.email}`, icon: '✉️', run: () => (window.location.href = `mailto:${AUTHOR.email}`) });
 
   /* --- commands --- */
   const cmd = (title: string, run: () => void, keywords = '', icon = '⚡') => add({ id: `cmd-${title}`, type: 'command', title, path: ['Komut'], keywords, icon, run });

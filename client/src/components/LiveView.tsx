@@ -36,18 +36,22 @@ function SidePanel({ stepIndex }: { stepIndex: number }) {
   const unread = chatCount - seenChat;
   return (
     <div className="side-panel">
-      <div className="subtabs" role="tablist">
+      <div className="side-tabs" role="tablist">
         {(
           [
-            ['flow', step.topicMode === 'tree' ? '🌳 Ağaç' : step.topicMode === 'tombala' ? '🎱 Tombala' : '🧭 Akış'],
-            ['speech', '🎙️ Döküm'],
-            ['notes', '📝 Not'],
-            ['chat', `💬 Sohbet${unread > 0 && tab !== 'chat' ? ` (${unread})` : ''}`],
-            ['room', '📡 Oda'],
+            ['flow', step.topicMode === 'tree' ? '🌳' : step.topicMode === 'tombala' ? '🎱' : '🧭', step.topicMode === 'tree' ? 'Ağaç' : step.topicMode === 'tombala' ? 'Tombala' : 'Akış'],
+            ['speech', '🎙️', 'Döküm'],
+            ['notes', '📝', 'Not'],
+            ['chat', '💬', 'Sohbet'],
+            ['room', '📡', 'Oda'],
           ] as const
-        ).map(([t, l]) => (
-          <button key={t} role="tab" aria-selected={tab === t} className={`subtab ${tab === t ? 'is-active' : ''}`} onClick={() => setTab(t)}>
-            {l}
+        ).map(([t, icon, label]) => (
+          <button key={t} role="tab" aria-selected={tab === t} className={`side-tab ${tab === t ? 'is-active' : ''}`} onClick={() => setTab(t)} title={label}>
+            <span className="side-tab-ico" aria-hidden>
+              {icon}
+              {t === 'chat' && unread > 0 && tab !== 'chat' && <span className="side-tab-badge">{unread > 9 ? '9+' : unread}</span>}
+            </span>
+            <span className="side-tab-label">{label}</span>
           </button>
         ))}
       </div>

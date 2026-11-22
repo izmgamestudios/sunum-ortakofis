@@ -147,7 +147,7 @@ export function ChatPanel() {
 }
 
 export function RoomPanel() {
-  const { code, connected, count, error, open, close } = useRoom();
+  const { code, connected, count, error, open, close, people } = useRoom();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
   const url = code ? joinUrl(code) : '';
@@ -189,8 +189,18 @@ export function RoomPanel() {
         </button>
       </div>
       <p className="muted small">
-        {connected ? '🟢 Bağlı' : '🟠 Yeniden bağlanıyor…'} · 👥 {Math.max(0, count - 1)} katılımcı
+        {connected ? '🟢 Bağlı' : '🟠 Yeniden bağlanıyor…'} · 👥 {people.length || Math.max(0, count - 1)} katılımcı · 🎨 tuval canlı paylaşılıyor
       </p>
+      {people.length > 0 && (
+        <details className="people" open={people.length <= 12}>
+          <summary>👥 Katılımcılar ({people.length})</summary>
+          <ul className="people-list">
+            {people.map((n, i) => (
+              <li key={`${n}-${i}`}>{n}</li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

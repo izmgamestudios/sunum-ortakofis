@@ -169,8 +169,9 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
               <Whiteboard
                 key={step.id}
                 elements={step.canvas}
+                groups={step.groups}
                 attachments={step.attachments}
-                onChange={(canvas) => updateStep(stepIndex, { canvas })}
+                onChange={(canvas, groups) => updateStep(stepIndex, { canvas, groups })}
                 onAddAttachments={(atts) => updateStep(stepIndex, (s) => ({ attachments: [...s.attachments, ...atts] }))}
                 onOpenMedia={(id) => {
                   setFocusId(id);

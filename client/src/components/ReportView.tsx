@@ -6,6 +6,7 @@ import { buildReport, fmtDuration } from '../lib/report';
 import { EMOTIONS } from '../lib/catalog';
 import { exportElementToPdf, exportJson, exportMarkdown, exportSnmtdz, slugify } from '../lib/io';
 import { renderBoard } from './Whiteboard';
+import { visibleElements } from '../lib/canvasGroups';
 import { NOTE_KINDS } from './Panels';
 import { BetaBadge, Logo } from './Header';
 
@@ -81,7 +82,7 @@ export function ReportView() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all(pres.steps.map(async (s) => [s.id, s.canvas.length ? await renderBoard(s.canvas, s.attachments, 640) : ''] as const)).then((pairs) => {
+    Promise.all(pres.steps.map(async (s) => [s.id, s.canvas.length ? await renderBoard(visibleElements(s.canvas, s.groups), s.attachments, 640) : ''] as const)).then((pairs) => {
       if (alive) setThumbs(Object.fromEntries(pairs));
     });
     return () => {

@@ -8,7 +8,7 @@ import { useTheme } from '../lib/theme';
 import { TEMPLATES } from '../lib/templates';
 import { FRAMEWORKS } from '../lib/frameworks';
 
-const APP_VERSION = '0.3.0-beta';
+import { APP_VERSION, AUTHOR, REPO } from '../lib/about';
 const READ_KEY = 'teknodoz-sunum:guide-read';
 
 const TABS: { id: HelpTab; label: string }[] = [
@@ -110,7 +110,16 @@ function Support() {
           <li>Önce <b>Sorun giderme</b> ve <b>SSS</b> sekmelerine göz at — çoğu sorunun çözümü orada.</li>
           <li>Sorunu tekrar üreten adımları not et (ne yaptın, ne bekledin, ne oldu?).</li>
           <li>Aşağıdaki sistem bilgisini kopyala ve gerekiyorsa sunumunu <b>.snmtdz</b> olarak dışa aktar (Ctrl+S).</li>
-          <li>Bu bilgileri, uygulamayı sana sağlayan ekip/yöneticiyle paylaş.</li>
+          <li>
+            Bilgileri GitHub Issues’a yaz ya da doğrudan ulaş:{' '}
+            <a href={REPO.issues} target="_blank" rel="noopener noreferrer">
+              GitHub Issues
+            </a>{' '}
+            · <a href={`mailto:${AUTHOR.email}`}>{AUTHOR.email}</a> ·{' '}
+            <a href={AUTHOR.whatsapp} target="_blank" rel="noopener noreferrer">
+              WhatsApp
+            </a>
+          </li>
         </ol>
       </div>
       <div className="card stack">

@@ -66,6 +66,22 @@ export interface CanvasElement {
   frameworkId?: number;
   hidden?: boolean;
   locked?: boolean;
+  /** innermost group (layer folder) this element belongs to */
+  groupId?: string;
+}
+
+/** Layer folder / group. Groups nest through parentId. */
+export interface CanvasGroup {
+  id: string;
+  name: string;
+  parentId?: string;
+  collapsed?: boolean;
+  hidden?: boolean;
+  /** the whole group can't move */
+  locked?: boolean;
+  /** children can't be moved one by one (texts stay editable) — default for framework infographics */
+  lockChildren?: boolean;
+  frameworkId?: number;
 }
 
 export interface TopicNode {
@@ -84,6 +100,7 @@ export interface Step {
   text: string;
   attachments: Attachment[];
   canvas: CanvasElement[];
+  groups: CanvasGroup[];
   topicMode: TopicMode;
   words: string[];
   drawnWords: string[];

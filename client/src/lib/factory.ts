@@ -18,6 +18,7 @@ export function createStep(index: number): Step {
     text: '',
     attachments: [],
     canvas: [],
+    groups: [],
     topicMode: 'free',
     words: [],
     drawnWords: [],

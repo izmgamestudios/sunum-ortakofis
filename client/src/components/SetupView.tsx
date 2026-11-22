@@ -170,8 +170,9 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
       {tab === 'canvas' && (
         <Whiteboard
           elements={step.canvas}
+          groups={step.groups}
           attachments={step.attachments}
-          onChange={(canvas) => patch({ canvas })}
+          onChange={(canvas, groups) => patch({ canvas, groups })}
           onAddAttachments={(atts) => updateStep(index, (s) => ({ attachments: [...s.attachments, ...atts] }))}
           onOpenMedia={(id) => {
             setFocusId(id);

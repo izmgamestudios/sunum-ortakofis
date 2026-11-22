@@ -30,13 +30,32 @@ interface PublicState {
   chatLocked: boolean;
 }
 
+interface CanvasSnapshot {
+  stepIndex: number;
+  elements: unknown[];
+  atts: { id: string; kind: string; name: string; url?: string }[];
+  at: number;
+}
+
 interface Room {
   code: string;
   presenterToken: string;
   createdAt: number;
   lastActivity: number;
   state: PublicState;
+  /** socket id → anonymous display name (audience only) */
+  people: Map<string, string>;
+  canvas: CanvasSnapshot | null;
+  /** attachment id → downscaled image data URL, insertion-ordered for eviction */
+  assets: Map<string, string>;
+  assetBytes: number;
 }
+
+const MAX_CANVAS_JSON = 1_500_000;
+const MAX_ASSET_BYTES = 1_600_000;
+const MAX_ROOM_ASSET_BYTES = 25_000_000;
+const ATT_KINDS = ['image', 'pdf', 'video', 'audio', 'link', 'file'];
+const IMAGE_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 
 interface RateBucket {
   tokens: number;
@@ -128,14 +147,21 @@ if (existsSync(clientDir)) {
 }
 
 const httpServer = createServer(app);
+function emitPeople(room: Room): void {
+  const names = [...room.people.values()];
+  io.to(room.code).emit('room:people', { count: names.length, names: names.slice(0, 300) });
+}
+
 const io = new Server(httpServer, {
-  maxHttpBufferSize: 16 * 1024,
+  // canvas snapshots and downscaled images (validated per event)
+  maxHttpBufferSize: 2_500_000,
   cors: IS_PROD ? undefined : { origin: true },
 });
 
 io.on('connection', (socket: Socket) => {
   const chatBucket: RateBucket = { tokens: 5, updatedAt: Date.now() };
   const reactBucket: RateBucket = { tokens: 10, updatedAt: Date.now() };
+  const canvasBucket: RateBucket = { tokens: 10, updatedAt: Date.now() };
   let joinedCode: string | null = null;
   let isPresenter = false;
   let name = anonName();
@@ -150,6 +176,10 @@ io.on('connection', (socket: Socket) => {
       createdAt: Date.now(),
       lastActivity: Date.now(),
       state: { title: cleanText(payload?.title, 120) ?? 'Sunum', stepIndex: 0, stepCount: 0, phase: 'idle', chatLocked: false },
+      people: new Map(),
+      canvas: null,
+      assets: new Map(),
+      assetBytes: 0,
     };
     rooms.set(code, room);
     joinedCode = code;
@@ -171,6 +201,7 @@ io.on('connection', (socket: Socket) => {
     name = 'Sunucu';
     socket.join(room.code);
     ack({ ok: true, code: room.code });
+    emitPeople(room);
   });
 
   socket.on('audience:join', (payload: { code?: string }, ack?: (r: unknown) => void) => {
@@ -182,8 +213,73 @@ io.on('connection', (socket: Socket) => {
     isPresenter = false;
     socket.join(room.code);
     room.lastActivity = Date.now();
+    room.people.set(socket.id, name);
     ack({ ok: true, name, state: room.state });
+    // late joiners get the current canvas, then its images one by one
+    if (room.canvas) socket.emit('canvas', room.canvas);
+    for (const [id, dataUrl] of room.assets) socket.emit('canvas:asset', { id, dataUrl });
     io.to(room.code).emit('room:count', io.sockets.adapter.rooms.get(room.code)?.size ?? 0);
+    emitPeople(room);
+  });
+
+  socket.on('audience:rename', (payload: { name?: string }, ack?: (r: unknown) => void) => {
+    if (!joinedCode || isPresenter || typeof ack !== 'function') return;
+    const room = rooms.get(joinedCode);
+    if (!room) return;
+    if (!allow(chatBucket, 0.5, 5)) return ack({ ok: false, error: 'Biraz yavaş 🙂' });
+    const next = cleanText(payload?.name, 24)?.replace(/\s+/g, ' ');
+    if (!next || next.length < 2) return ack({ ok: false, error: 'En az 2 karakter.' });
+    if (/^sunucu$/i.test(next)) return ack({ ok: false, error: 'Bu isim kullanılamaz.' });
+    name = next;
+    room.people.set(socket.id, name);
+    ack({ ok: true, name });
+    emitPeople(room);
+  });
+
+  socket.on('canvas:update', (payload: Partial<CanvasSnapshot>) => {
+    if (!isPresenter || !joinedCode) return;
+    const room = rooms.get(joinedCode);
+    if (!room || !allow(canvasBucket, 5, 10)) return;
+    if (!Array.isArray(payload?.elements) || payload.elements.length > 3000 || !Number.isInteger(payload.stepIndex)) return;
+    let size = 0;
+    try {
+      size = JSON.stringify(payload.elements).length;
+    } catch {
+      return;
+    }
+    if (size > MAX_CANVAS_JSON) return;
+    const atts = (Array.isArray(payload.atts) ? payload.atts : [])
+      .slice(0, 200)
+      .filter((a) => a && typeof a.id === 'string' && a.id.length <= 64 && ATT_KINDS.includes(a.kind))
+      .map((a) => ({
+        id: a.id,
+        kind: a.kind,
+        name: cleanText(a.name, 120) ?? '',
+        url: typeof a.url === 'string' && /^https?:\/\//.test(a.url) && a.url.length < 2000 ? a.url : undefined,
+      }));
+    room.canvas = { stepIndex: payload.stepIndex as number, elements: payload.elements, atts, at: Date.now() };
+    room.lastActivity = Date.now();
+    socket.to(room.code).emit('canvas', room.canvas);
+  });
+
+  socket.on('canvas:asset', (payload: { id?: string; dataUrl?: string }) => {
+    if (!isPresenter || !joinedCode) return;
+    const room = rooms.get(joinedCode);
+    if (!room || !allow(canvasBucket, 5, 10)) return;
+    const { id, dataUrl } = payload ?? {};
+    if (typeof id !== 'string' || id.length > 64 || typeof dataUrl !== 'string' || dataUrl.length > MAX_ASSET_BYTES || !IMAGE_DATA_URL.test(dataUrl)) return;
+    const prev = room.assets.get(id);
+    if (prev) room.assetBytes -= prev.length;
+    room.assets.delete(id);
+    room.assets.set(id, dataUrl);
+    room.assetBytes += dataUrl.length;
+    // evict oldest images beyond the per-room budget
+    for (const [k, v] of room.assets) {
+      if (room.assetBytes <= MAX_ROOM_ASSET_BYTES) break;
+      room.assets.delete(k);
+      room.assetBytes -= v.length;
+    }
+    socket.to(room.code).emit('canvas:asset', { id, dataUrl });
   });
 
   socket.on('state:update', (payload: Partial<PublicState>) => {
@@ -237,8 +333,11 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('disconnect', () => {
-    if (joinedCode && rooms.has(joinedCode)) {
-      io.to(joinedCode).emit('room:count', io.sockets.adapter.rooms.get(joinedCode)?.size ?? 0);
+    const room = joinedCode ? rooms.get(joinedCode) : undefined;
+    if (room) {
+      room.people.delete(socket.id);
+      io.to(room.code).emit('room:count', io.sockets.adapter.rooms.get(room.code)?.size ?? 0);
+      emitPeople(room);
     }
   });
 });

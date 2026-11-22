@@ -12,6 +12,7 @@ import { SearchPalette, SearchTrigger } from './Search';
 import { ShortcutsModal, useGlobalShortcuts } from './Shortcuts';
 import { FAQS, GUIDE } from '../lib/help';
 import { keyLabel } from '../lib/shortcuts';
+import { APP_VERSION, AUTHOR, REPO } from '../lib/about';
 
 /* ------------------------------------------------------------------ */
 /* Announcement bar                                                    */
@@ -77,7 +78,7 @@ const THEME_OPTS: { id: ThemeMode; icon: string; label: string }[] = [
   { id: 'system', icon: '💻', label: 'Sistem' },
 ];
 
-function ThemeSwitcher() {
+export function ThemeSwitcher() {
   const { mode, resolved, setMode } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useDismiss(open, () => setOpen(false));
@@ -182,7 +183,7 @@ function ResourcesMega({ onPick }: { onPick: () => void }) {
     { icon: '⌨️', title: 'Klavye kısayolları', desc: 'Ctrl+K arama, G+harf gezinme, tuval tuşları', run: () => setShortcutsOpen(true) },
     { icon: '🩺', title: 'Sorun giderme', desc: 'Zil, mikrofon, PDF, bağlantı, 502…', run: () => openHelp('troubleshoot') },
     { icon: '🛟', title: 'Destek', desc: 'Sistem bilgisi, geri bildirim', run: () => openHelp('support') },
-    { icon: '🙏', title: 'Credits', desc: 'Ekip, açık kaynak kütüphaneler', run: () => setView('credits') },
+    { icon: '🙏', title: 'Hakkında & Credits', desc: 'Geliştirici, iletişim, açık kaynak (GitHub)', run: () => setView('credits') },
   ];
   return (
     <div className="mega-grid mega-grid--resources">
@@ -433,7 +434,7 @@ function SidebarNav() {
         {item('⌨️ Kısayollar', false, () => useApp.getState().setShortcutsOpen(true))}
         {item('🩺 Sorun giderme', view === 'faq' && helpTab === 'troubleshoot', () => openHelp('troubleshoot'))}
         {item('🛟 Destek', view === 'faq' && helpTab === 'support', () => openHelp('support'))}
-        {item('🙏 Credits', view === 'credits', () => setView('credits'))}
+        {item('🙏 Hakkında & Credits', view === 'credits', () => setView('credits'))}
       </NavGroup>
     </nav>
   );
@@ -506,15 +507,32 @@ function SiteFooter() {
             {link('Kısayollar', () => useApp.getState().setShortcutsOpen(true))}
             {link('Sorun giderme', () => useApp.getState().openHelp('troubleshoot'))}
             {link('.snmtdz formatı', () => useApp.getState().openHelp('guide', 'disa-aktarma'))}
-            {link('Credits', () => setView('credits'))}
+            {link('Hakkında & Credits', () => setView('credits'))}
           </ul>
         </div>
         <div>
-          <p className="footer-title">Teknodoz</p>
-          <ul className="small muted">
-            <li>Topluluk odaklı ürün ekosistemi</li>
-            <li>Verilerin cihazında kalır</li>
-            <li>v0.2.0-beta</li>
+          <p className="footer-title">Teknodoz · Açık kaynak</p>
+          <ul className="small">
+            <li>
+              <a className="footer-link" href={REPO.url} target="_blank" rel="noopener noreferrer">
+                ⭐ GitHub — katkılarınızı bekliyoruz
+              </a>
+            </li>
+            <li>
+              <a className="footer-link" href={AUTHOR.linkedin} target="_blank" rel="noopener noreferrer">
+                💼 {AUTHOR.name}
+              </a>
+            </li>
+            <li>
+              <a className="footer-link" href={AUTHOR.whatsapp} target="_blank" rel="noopener noreferrer">
+                💬 WhatsApp
+              </a>{' '}
+              ·{' '}
+              <a className="footer-link" href={`mailto:${AUTHOR.email}`}>
+                ✉️ E-posta
+              </a>
+            </li>
+            <li className="muted">v{APP_VERSION} · verilerin cihazında kalır</li>
           </ul>
         </div>
       </div>

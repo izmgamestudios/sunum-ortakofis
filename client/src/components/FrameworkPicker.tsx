@@ -20,7 +20,7 @@ export function FwThumb({ id, width = 360, className = '' }: { id: number; width
 
 interface Props {
   hasContent: boolean;
-  onInsert: (els: CanvasElement[], replace: boolean) => void;
+  onInsert: (els: CanvasElement[], replace: boolean, fw: Framework) => void;
   onClose: () => void;
 }
 
@@ -47,7 +47,7 @@ export function FrameworkPicker({ hasContent, onInsert, onClose }: Props) {
 
   const insert = (replace: boolean) => {
     if (!pick) return;
-    onInsert(buildFramework(pick), replace);
+    onInsert(buildFramework(pick), replace, pick);
     onClose();
   };
 
