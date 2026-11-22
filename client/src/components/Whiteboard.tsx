@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Attachment, CanvasElement, CanvasTool } from '../types';
 import { uid } from '../lib/factory';
 import { downloadBlob, dataUrlToBlob, fileToAttachment } from '../lib/io';
+import { FrameworkPicker } from './FrameworkPicker';
 import {
   BOARD_H,
   BOARD_W,
@@ -92,6 +93,7 @@ export function Whiteboard({ elements, onChange, attachments, onAddAttachments, 
   const [future, setFuture] = useState<CanvasElement[][]>([]);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [showLayers, setShowLayers] = useState(false);
+  const [showFw, setShowFw] = useState(false);
   const [size, setSize] = useState({ w: 800, h: 450 });
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -551,6 +553,9 @@ export function Whiteboard({ elements, onChange, attachments, onAddAttachments, 
           <button className="tool tool--wide" onClick={() => fileRef.current?.click()} disabled={busy} title="Görsel / PDF / video ekle → tuvale yerleşir">
             {busy ? '⏳' : '🖼️'} <span className="hide-sm">Medya</span>
           </button>
+          <button className="tool tool--wide" onClick={() => setShowFw(true)} title="Çerçeve / model ekle (Ikigai, SWOT, OKR…)">
+            🧩 <span className="hide-sm">Çerçeve</span>
+          </button>
           <button className="tool" onClick={undo} disabled={!past.length} title="Geri al (Ctrl+Z)" aria-label="Geri al">↶</button>
           <button className="tool" onClick={redo} disabled={!future.length} title="Yinele (Ctrl+Y)" aria-label="Yinele">↷</button>
           <button className={`tool tool--wide ${showLayers ? 'is-active' : ''}`} onClick={() => setShowLayers((s) => !s)} title="Katmanlar" aria-pressed={showLayers}>
@@ -625,6 +630,17 @@ export function Whiteboard({ elements, onChange, attachments, onAddAttachments, 
           </div>
         </div>
 
+        {showFw && (
+          <FrameworkPicker
+            hasContent={elements.length > 0}
+            onClose={() => setShowFw(false)}
+            onInsert={(els, replace) => {
+              commit(replace ? els : [...latest.current, ...els]);
+              setToolState('select');
+              setSelectedId(null);
+            }}
+          />
+        )}
         {showLayers && (
           <aside className="layers" aria-label="Katmanlar">
             <div className="layers-head">

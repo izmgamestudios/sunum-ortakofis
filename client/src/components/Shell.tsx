@@ -4,6 +4,7 @@ import { useApp } from '../store';
 import { useTheme, type ThemeMode } from '../lib/theme';
 import { buildReport, fmtDuration } from '../lib/report';
 import { CATEGORIES, TEMPLATES, type TemplateCategory } from '../lib/templates';
+import { FRAMEWORKS } from '../lib/frameworks';
 import { MAX_STEPS } from '../lib/factory';
 import type { View } from '../types';
 import { BetaBadge, FileMenu, Logo, useDismiss } from './Header';
@@ -18,7 +19,8 @@ function AnnouncementBar() {
   const openTemplates = useApp((s) => s.openTemplates);
   const items = [
     { text: 'Yeni: konuşmanı canlı yazıya dök — tombala kelimeleri otomatik işaretlensin.', cta: 'SSS’de oku', go: () => setView('faq') },
-    { text: '10 kategoride 20 hazır şablonla 1 dakikada sunuma başla.', cta: 'Şablonlara git', go: () => openTemplates() },
+    { text: `Yeni: ${FRAMEWORKS.length} düşünme modeli (Ikigai, SWOT, OKR…) — şablon olarak ya da tuvale düzenlenebilir infografik olarak.`, cta: 'Modellere git', go: () => openTemplates('cerceve') },
+    { text: `${Object.keys(CATEGORIES).length} kategoride ${TEMPLATES.length} hazır şablonla 1 dakikada sunuma başla.`, cta: 'Şablonlara git', go: () => openTemplates() },
   ];
   const [i, setI] = useState(0);
   const [hidden, setHidden] = useState(() => {
@@ -174,7 +176,7 @@ function ResourcesMega({ onPick }: { onPick: () => void }) {
   const links: { icon: string; title: string; desc: string; view: View }[] = [
     { icon: '❓', title: 'Sıkça Sorulan Sorular', desc: 'Döküm, canlı oda, veri gizliliği, dışa aktarma', view: 'faq' },
     { icon: '📊', title: 'Rapor & SWOT', desc: 'Skorlar, rozetler, otomatik SWOT analizi', view: 'report' },
-    { icon: '📚', title: 'Şablon galerisi', desc: '20 hazır sunum iskeleti', view: 'templates' },
+    { icon: '📚', title: 'Şablon galerisi', desc: `${TEMPLATES.length} hazır sunum iskeleti`, view: 'templates' },
     { icon: '🙏', title: 'Credits', desc: 'Ekip, açık kaynak kütüphaneler, lisanslar', view: 'credits' },
   ];
   return (

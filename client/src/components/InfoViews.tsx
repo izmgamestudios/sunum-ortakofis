@@ -1,7 +1,7 @@
 // client/src/components/InfoViews.tsx
 import { useState } from 'react';
 import { useApp } from '../store';
-import { normalizeTr } from '../lib/speechMatch';
+import { foldTr as normalizeTr } from '../lib/speechMatch';
 import { TEMPLATES } from '../lib/templates';
 import { BetaBadge, Logo } from './Header';
 

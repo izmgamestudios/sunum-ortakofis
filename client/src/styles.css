@@ -3667,3 +3667,122 @@ kbd {
 .wall-empty {
   grid-column: 1 / -1;
 }
+
+/* =================================================================== */
+/* Modal + framework picker                                            */
+/* =================================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(2, 6, 23, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  animation: fadeIn 0.15s ease-out;
+}
+.modal {
+  width: min(560px, 100%);
+  max-height: min(90dvh, 900px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.modal--wide {
+  width: min(1120px, 100%);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-head h2 {
+  font-size: 1.1rem;
+}
+.modal-tools {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.fw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+}
+.fw-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  padding: 8px;
+  min-width: 0;
+  transition: transform 0.12s, border-color 0.12s;
+}
+.fw-card:hover {
+  border-color: var(--purple);
+  transform: translateY(-2px);
+}
+.fw-card small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.fw-thumb,
+.tpl-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+.thumb-skeleton {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface-2), var(--surface), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.fw-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 16px;
+  overflow-y: auto;
+}
+@media (max-width: 800px) {
+  .fw-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.fw-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--border);
+  background: #fff;
+}
+.fw-detail h3 {
+  font-size: 1.4rem;
+}
+.fw-detail p {
+  margin: 0;
+}
+.chip--static {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}

@@ -44,7 +44,7 @@ export type CanvasTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'line' | 
 
 export interface CanvasElement {
   id: string;
-  type: 'path' | 'line' | 'arrow' | 'rect' | 'ellipse' | 'text' | 'image' | 'sticky' | 'media';
+  type: 'path' | 'line' | 'arrow' | 'rect' | 'ellipse' | 'polygon' | 'text' | 'image' | 'sticky' | 'media';
   color: string;
   width: number;
   opacity?: number;
@@ -55,11 +55,15 @@ export interface CanvasElement {
   h?: number;
   text?: string;
   fontSize?: number;
+  /** text alignment inside its box (multi-line labels) */
+  align?: 'left' | 'center';
   attachmentId?: string;
   /** radians, around the element's bounding-box centre */
   rotation?: number;
-  /** sticky-note background */
+  /** background for sticky notes, rects, ellipses and polygons */
   fill?: string;
+  /** framework infographics: id of the source model */
+  frameworkId?: number;
   hidden?: boolean;
   locked?: boolean;
 }

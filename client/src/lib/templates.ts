@@ -1,7 +1,9 @@
 // client/src/lib/templates.ts
 import type { Presentation, RoleplayConfig } from '../types';
-import { createPresentation, createStep } from './factory';
+import { createNode, createPresentation, createStep } from './factory';
 import { parseOutline } from './outline';
+import { FRAMEWORKS, FW_GROUPS, frameworkById } from './frameworks';
+import { buildFramework } from './frameworkDraw';
 
 export type TemplateCategory =
   | 'girisimcilik'
@@ -13,7 +15,8 @@ export type TemplateCategory =
   | 'finans'
   | 'siyaset'
   | 'inanc'
-  | 'kisisel';
+  | 'kisisel'
+  | 'cerceve';
 
 export const CATEGORIES: Record<TemplateCategory, { label: string; emoji: string; color: string }> = {
   girisimcilik: { label: 'Girişimcilik', emoji: '🚀', color: '#a93bf5' },
@@ -26,6 +29,7 @@ export const CATEGORIES: Record<TemplateCategory, { label: string; emoji: string
   siyaset: { label: 'Siyaset & Kamu', emoji: '🏛️', color: '#64748b' },
   inanc: { label: 'İnanç & Değerler', emoji: '🕊️', color: '#a16207' },
   kisisel: { label: 'Kişisel Gelişim', emoji: '🌱', color: '#ec4899' },
+  cerceve: { label: 'Çerçeveler & Modeller', emoji: '🧩', color: '#0ea5e9' },
 };
 
 interface TemplateStep {
@@ -35,6 +39,10 @@ interface TemplateStep {
   words?: string[];
   /** indented outline → topic tree mode */
   tree?: string;
+  /** flat topic-tree nodes (no outline parsing) */
+  nodes?: string[];
+  /** framework infographic pre-placed on the step canvas */
+  framework?: number;
 }
 
 export interface PresentationTemplate {
@@ -46,9 +54,11 @@ export interface PresentationTemplate {
   level: 'Başlangıç' | 'Orta' | 'İleri';
   roleplay?: Partial<RoleplayConfig>;
   steps: TemplateStep[];
+  /** framework id for gallery previews */
+  frameworkId?: number;
 }
 
-export const TEMPLATES: PresentationTemplate[] = [
+const BASE_TEMPLATES: PresentationTemplate[] = [
   /* ---------------- Girişimcilik ---------------- */
   {
     id: 'pitch-deck',
@@ -377,6 +387,29 @@ export const TEMPLATES: PresentationTemplate[] = [
   },
 ];
 
+const firstLine = (p: string) => p.split('\n')[0].trim();
+
+/** One 3-step template per framework: the model (diagram on canvas) → your example (parts as tombala) → action plan. */
+const FRAMEWORK_TEMPLATES: PresentationTemplate[] = FRAMEWORKS.map((fw) => {
+  const parts = fw.parts.map(firstLine);
+  return {
+    id: `fw-${fw.id}`,
+    category: 'cerceve',
+    title: fw.name,
+    description: `${fw.subtitle} — ${fw.desc}`,
+    audience: FW_GROUPS[fw.group].label,
+    level: 'Başlangıç',
+    frameworkId: fw.id,
+    steps: [
+      { title: `${fw.name}: model`, text: `${fw.desc}\n\nBileşenler: ${parts.join(' · ')}`, nodes: parts, framework: fw.id },
+      { title: 'Kendi örneğim', text: 'Modeli kendi hayatına ya da işine uygula: her bileşen için bir örnek ver. Söyledikçe tombala kelimeleri otomatik işaretlenir.', words: parts },
+      { title: 'Eylem planı', text: 'Bu modelden çıkan 3 somut aksiyonu ve bu hafta atacağın ilk adımı yaz. Kim, ne zaman, nasıl ölçülecek?', nodes: ['Aksiyon 1', 'Aksiyon 2', 'Aksiyon 3', 'İlk adım (bu hafta)'] },
+    ],
+  };
+});
+
+export const TEMPLATES: PresentationTemplate[] = [...BASE_TEMPLATES, ...FRAMEWORK_TEMPLATES];
+
 export function presentationFromTemplate(t: PresentationTemplate): Presentation {
   const base = createPresentation(t.steps.length);
   return {
@@ -389,9 +422,10 @@ export function presentationFromTemplate(t: PresentationTemplate): Presentation 
       ...createStep(i),
       title: s.title,
       text: s.text,
-      topicMode: s.words ? 'tombala' : s.tree ? 'tree' : 'free',
+      topicMode: s.words ? 'tombala' : s.tree || s.nodes ? 'tree' : 'free',
       words: s.words ?? [],
-      topicTree: s.tree ? parseOutline(s.tree) : [],
+      topicTree: s.nodes ? s.nodes.map((n) => createNode(n)) : s.tree ? parseOutline(s.tree) : [],
+      canvas: s.framework && frameworkById(s.framework) ? buildFramework(frameworkById(s.framework)!) : [],
     })),
   };
 }

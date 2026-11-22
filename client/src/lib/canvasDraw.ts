@@ -25,6 +25,15 @@ function measureCtx(): CanvasRenderingContext2D | null {
 }
 export const fontFor = (fs: number) => `600 ${fs}px Inter, system-ui, sans-serif`;
 
+/** Widest line of `text` at font size `fs` (falls back to an estimate outside the browser). */
+export function textWidth(text: string, fs: number): number {
+  const lines = text.split('\n');
+  const ctx = measureCtx();
+  if (!ctx) return Math.max(...lines.map((l) => l.length)) * fs * 0.55;
+  ctx.font = fontFor(fs);
+  return Math.max(...lines.map((l) => ctx.measureText(l).width));
+}
+
 export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
   const out: string[] = [];
   text.split('\n').forEach((para) => {
@@ -164,6 +173,8 @@ export function elementLabel(el: CanvasElement, atts: Attachment[]): { icon: str
       return { icon: '▭', name: 'Dikdörtgen' };
     case 'ellipse':
       return { icon: '◯', name: 'Elips' };
+    case 'polygon':
+      return { icon: '⬠', name: 'Şekil' };
     case 'text':
       return { icon: '𝐓', name: `“${(el.text ?? '').slice(0, 22)}”` };
     case 'sticky':
@@ -254,21 +265,47 @@ export function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement, at
     }
     case 'rect': {
       const b = bbox(el);
-      ctx.strokeRect(b.x, b.y, b.w, b.h);
+      if (el.fill) {
+        ctx.fillStyle = el.fill;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+      }
+      if (el.width > 0) ctx.strokeRect(b.x, b.y, b.w, b.h);
       break;
     }
     case 'ellipse': {
       const b = bbox(el);
       ctx.beginPath();
       ctx.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, b.h / 2, 0, 0, Math.PI * 2);
-      ctx.stroke();
+      if (el.fill) {
+        ctx.fillStyle = el.fill;
+        ctx.fill();
+      }
+      if (el.width > 0) ctx.stroke();
+      break;
+    }
+    case 'polygon': {
+      if (pts.length < 6) break;
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+      ctx.closePath();
+      if (el.fill) {
+        ctx.fillStyle = el.fill;
+        ctx.fill();
+      }
+      if (el.width > 0) ctx.stroke();
       break;
     }
     case 'text': {
       const fs = el.fontSize ?? 48;
       ctx.font = fontFor(fs);
       ctx.textBaseline = 'top';
-      (el.text ?? '').split('\n').forEach((line, i) => ctx.fillText(line, el.x ?? 0, (el.y ?? 0) + i * fs * 1.2));
+      const lines = (el.text ?? '').split('\n');
+      const boxW = el.align === 'center' ? Math.max(...lines.map((l) => ctx.measureText(l).width)) : 0;
+      lines.forEach((line, i) => {
+        const dx = el.align === 'center' ? (boxW - ctx.measureText(line).width) / 2 : 0;
+        ctx.fillText(line, (el.x ?? 0) + dx, (el.y ?? 0) + i * fs * 1.2);
+      });
       break;
     }
     case 'sticky': {

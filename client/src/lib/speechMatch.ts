@@ -72,3 +72,16 @@ export function speechStats(texts: string[]): SpeechStats {
     topFillers: [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
   };
 }
+
+/** Search folding: case-, accent- and dotted/dotless-i-insensitive ("Ikigai" ≈ "ikigai", "şablon" ≈ "sablon"). */
+export function foldTr(s: string): string {
+  return normalizeTr(s)
+    .replace(/ı/g, 'i')
+    .replace(/ş/g, 's')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}

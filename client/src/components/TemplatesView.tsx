@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../store';
 import { CATEGORIES, presentationFromTemplate, TEMPLATES, totalMinutes, type PresentationTemplate, type TemplateCategory } from '../lib/templates';
 import { EMOTIONS, SETTINGS } from '../lib/catalog';
-import { normalizeTr } from '../lib/speechMatch';
+import { foldTr as normalizeTr } from '../lib/speechMatch';
+import { FW_GROUPS, type FwGroup } from '../lib/frameworks';
+import { FwThumb } from './FrameworkPicker';
 
 function isPristine(p: ReturnType<typeof useApp.getState>['pres']): boolean {
   return !p.steps.some((s) => s.text || s.attachments.length || s.canvas.length || s.words.length || s.topicTree.length) && !p.run.startedAt;
@@ -21,6 +23,7 @@ function TemplateCard({ t, onUse }: { t: PresentationTemplate; onUse: (t: Presen
         </span>
         <span className="tpl-level">{t.level}</span>
       </div>
+      {t.frameworkId && <FwThumb id={t.frameworkId} width={480} className="tpl-thumb" />}
       <h3>{t.title}</h3>
       <p className="small muted">{t.description}</p>
       <ul className="tpl-meta small">
@@ -63,15 +66,17 @@ export function TemplatesView() {
   const [cat, setCat] = useState<TemplateCategory | 'all'>(initialCat);
   useEffect(() => setCat(initialCat), [initialCat]);
   const [q, setQ] = useState('');
+  const [fwGroup, setFwGroup] = useState<FwGroup | 'all'>('all');
 
   const recommended = useMemo(() => {
     // one template from 3 different random categories → fresh suggestions each visit
     const cats = (Object.keys(CATEGORIES) as TemplateCategory[]).sort(() => Math.random() - 0.5).slice(0, 3);
-    return cats.map((c) => TEMPLATES.filter((t) => t.category === c)[Math.floor(Math.random() * 2)] ?? TEMPLATES[0]);
+    return cats.map((c) => { const pool = TEMPLATES.filter((t) => t.category === c); return pool[Math.floor(Math.random() * pool.length)] ?? TEMPLATES[0]; });
   }, []);
 
   const filtered = TEMPLATES.filter((t) => {
     if (cat !== 'all' && t.category !== cat) return false;
+    if (cat === 'cerceve' && fwGroup !== 'all' && t.audience !== FW_GROUPS[fwGroup].label) return false;
     if (!q.trim()) return true;
     const hay = normalizeTr([t.title, t.description, t.audience, CATEGORIES[t.category].label, ...t.steps.map((s) => s.title)].join(' '));
     return normalizeTr(q).split(' ').every((w) => hay.includes(w));
@@ -113,6 +118,18 @@ export function TemplatesView() {
             </button>
           ))}
         </div>
+        {cat === 'cerceve' && (
+          <div className="pill-grid" role="radiogroup" aria-label="Model grubu">
+            <button className={`pill pill--sm ${fwGroup === 'all' ? 'is-active' : ''}`} onClick={() => setFwGroup('all')}>
+              Tüm modeller
+            </button>
+            {(Object.keys(FW_GROUPS) as FwGroup[]).map((g) => (
+              <button key={g} className={`pill pill--sm ${fwGroup === g ? 'is-active' : ''}`} onClick={() => setFwGroup(g)}>
+                {FW_GROUPS[g].emoji} {FW_GROUPS[g].label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="tpl-grid">
           {filtered.map((t) => (
             <TemplateCard key={t.id} t={t} onUse={use} />
