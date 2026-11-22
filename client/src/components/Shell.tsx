@@ -393,7 +393,7 @@ function SidebarNav() {
             </>,
             view === 'setup' && activeStep === i,
             () => setActiveStep(i),
-            <small className="side-min">{Math.round(s.durationSec / 60)}′</small>,
+            <small className="side-min">{Math.round(s.durationSec / 60)} dk</small>,
           ),
         )}
         {steps.length < MAX_STEPS &&

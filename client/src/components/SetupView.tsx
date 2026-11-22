@@ -8,6 +8,10 @@ import { fmtDuration } from '../lib/report';
 import { RoleplaySettings } from './Roleplay';
 import { MediaPanel } from './Media';
 import { Whiteboard } from './Whiteboard';
+import { SlideViewer } from './SlideViewer';
+import { elementsForAttachments } from '../lib/canvasDraw';
+import { useSettings } from '../lib/settings';
+import { bell, unlockAudio } from '../lib/sound';
 import { TombalaEditor, TreeEditor } from './Topics';
 
 type EditorTab = 'text' | 'media' | 'canvas' | 'flow';
@@ -65,9 +69,48 @@ function BreakSettings({ value, onChange }: { value: BreakConfig; onChange: (v: 
   );
 }
 
+function BellSettings() {
+  const { bell: on, bellWarnSec, volume, set } = useSettings();
+  return (
+    <div className="stack bell-settings">
+      <label className="switch">
+        <input type="checkbox" checked={on} onChange={(e) => set({ bell: e.target.checked })} />
+        <span>🔔 Son saniyelerde zil çalsın</span>
+      </label>
+      {on && (
+        <>
+          <div className="seg-control" role="radiogroup" aria-label="İlk uyarı">
+            {([10, 30, 60] as const).map((s) => (
+              <button key={s} role="radio" aria-checked={bellWarnSec === s} className={bellWarnSec === s ? 'is-active' : ''} onClick={() => set({ bellWarnSec: s })}>
+                {s} sn kala
+              </button>
+            ))}
+          </div>
+          <label className="row gap-s small">
+            🔈
+            <input type="range" min={0.1} max={1} step={0.1} value={volume} onChange={(e) => set({ volume: Number(e.target.value) })} aria-label="Zil sesi" className="full" />
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                unlockAudio();
+                setTimeout(() => bell('warn', volume), 50);
+              }}
+            >
+              Dene
+            </button>
+          </label>
+          <p className="muted small">Uyarı çanı → son 5 saniyede tık → bitişte çift çan. Sunum sırasında 🔔 ile kapatabilirsin.</p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function StepEditor({ index, step }: { index: number; step: Step }) {
   const updateStep = useApp((s) => s.updateStep);
+  const setAttachments = useApp((s) => s.setAttachments);
   const [tab, setTab] = useState<EditorTab>('text');
+  const [focusId, setFocusId] = useState<string | null>(null);
   const patch = (p: Partial<Step>) => updateStep(index, p);
   return (
     <div className="card step-editor">
@@ -110,8 +153,33 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
           onChange={(e) => patch({ text: e.target.value })}
         />
       )}
-      {tab === 'media' && <MediaPanel attachments={step.attachments} onChange={(attachments) => patch({ attachments })} />}
-      {tab === 'canvas' && <Whiteboard elements={step.canvas} attachments={step.attachments} onChange={(canvas) => patch({ canvas })} title={`adim-${index + 1}`} />}
+      {tab === 'media' && (
+        <div className="stack">
+          {step.attachments.some((a) => a.kind !== 'file') && (
+            <SlideViewer
+              attachments={step.attachments}
+              focusId={focusId}
+              onPinExisting={(a) => elementsForAttachments([a], step.canvas.length).then((els) => updateStep(index, (s) => ({ canvas: [...s.canvas, ...els] })))}
+              onPinNew={(a) => elementsForAttachments([a], step.canvas.length).then((els) => updateStep(index, (s) => ({ attachments: [...s.attachments, a], canvas: [...s.canvas, ...els] })))}
+            />
+          )}
+          <p className="muted small">ℹ️ Yüklediğin her dosya bu adımın tuvaline de otomatik yerleşir; tuvalde taşıyıp boyutlandırabilirsin.</p>
+          <MediaPanel attachments={step.attachments} onChange={(attachments) => void setAttachments(index, attachments)} />
+        </div>
+      )}
+      {tab === 'canvas' && (
+        <Whiteboard
+          elements={step.canvas}
+          attachments={step.attachments}
+          onChange={(canvas) => patch({ canvas })}
+          onAddAttachments={(atts) => updateStep(index, (s) => ({ attachments: [...s.attachments, ...atts] }))}
+          onOpenMedia={(id) => {
+            setFocusId(id);
+            setTab('media');
+          }}
+          title={`adim-${index + 1}`}
+        />
+      )}
       {tab === 'flow' && (
         <div className="stack">
           <div className="seg-control" role="radiogroup" aria-label="Konu akışı">
@@ -214,6 +282,7 @@ export function SetupView() {
               <input type="checkbox" checked={pres.autoAdvance} onChange={(e) => updatePres({ autoAdvance: e.target.checked })} />
               <span>⏭️ Süre bitince otomatik sonraki adıma geç</span>
             </label>
+            <BellSettings />
           </div>
         </aside>
 

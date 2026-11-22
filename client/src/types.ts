@@ -40,11 +40,11 @@ export interface Attachment {
   url?: string;
 }
 
-export type CanvasTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'line' | 'arrow' | 'rect' | 'ellipse' | 'text';
+export type CanvasTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'line' | 'arrow' | 'rect' | 'ellipse' | 'text' | 'sticky';
 
 export interface CanvasElement {
   id: string;
-  type: 'path' | 'line' | 'arrow' | 'rect' | 'ellipse' | 'text' | 'image';
+  type: 'path' | 'line' | 'arrow' | 'rect' | 'ellipse' | 'text' | 'image' | 'sticky' | 'media';
   color: string;
   width: number;
   opacity?: number;
@@ -56,6 +56,12 @@ export interface CanvasElement {
   text?: string;
   fontSize?: number;
   attachmentId?: string;
+  /** radians, around the element's bounding-box centre */
+  rotation?: number;
+  /** sticky-note background */
+  fill?: string;
+  hidden?: boolean;
+  locked?: boolean;
 }
 
 export interface TopicNode {

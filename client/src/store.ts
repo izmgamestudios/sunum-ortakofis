@@ -5,6 +5,7 @@ import type { BreakActivity, ChatMessage, LiveState, Note, Presentation, Step, T
 import { createPresentation, createStep, defaultDurationSec, MAX_STEPS, normalizePresentation, uid } from './lib/factory';
 import { BREAK_ACTIVITIES, randomRoleplay, roleplaySentence } from './lib/catalog';
 import { findMentions } from './lib/speechMatch';
+import { elementsForAttachments } from './lib/canvasDraw';
 
 const STORAGE_KEY = 'teknodoz-sunum:v1';
 
@@ -43,6 +44,8 @@ interface AppState {
   updatePres: (patch: Partial<Presentation> | ((p: Presentation) => Partial<Presentation>)) => void;
   updateStep: (index: number, patch: Partial<Step> | ((s: Step) => Partial<Step>)) => void;
   setStepCount: (n: number) => void;
+  /** replace a step's attachments: new ones are placed on the canvas, removed ones are taken off it */
+  setAttachments: (index: number, atts: Step['attachments']) => Promise<void>;
   resetDurations: () => void;
   newPresentation: () => void;
   loadPresentation: (p: Presentation) => void;
@@ -50,6 +53,8 @@ interface AppState {
   start: () => void;
   next: () => void;
   prev: () => void;
+  /** jump to any step (used while paused); keeps the paused state */
+  goToStep: (index: number) => void;
   togglePause: () => void;
   extendBreak: (sec: number) => void;
   finish: () => void;
@@ -110,6 +115,8 @@ export const useApp = create<AppState>((set, get) => {
         phase: 'step',
         stepIndex: index,
         phaseStartedAt: now,
+        // navigating while paused stays paused (elapsed = 0 until resumed)
+        pausedAt: live.pausedAt ? now : null,
         currentRoleplay: rp,
         flipKey: live.flipKey + 1,
       },
@@ -168,6 +175,18 @@ export const useApp = create<AppState>((set, get) => {
         return { pres: touch({ ...s.pres, steps }) };
       }),
 
+    setAttachments: async (index, atts) => {
+      const step = get().pres.steps[index];
+      if (!step) return;
+      const added = atts.filter((a) => !step.attachments.some((b) => b.id === a.id));
+      const removed = new Set(step.attachments.filter((a) => !atts.some((b) => b.id === a.id)).map((a) => a.id));
+      get().updateStep(index, (s) => ({ attachments: atts, canvas: s.canvas.filter((e) => !e.attachmentId || !removed.has(e.attachmentId)) }));
+      if (added.length) {
+        const els = await elementsForAttachments(added, get().pres.steps[index].canvas.length);
+        get().updateStep(index, (s) => ({ canvas: [...s.canvas, ...els] }));
+      }
+    },
+
     setStepCount: (n) =>
       set((s) => {
         const count = Math.max(1, Math.min(MAX_STEPS, n));
@@ -204,7 +223,8 @@ export const useApp = create<AppState>((set, get) => {
       if (live.phase === 'step') {
         const isLast = live.stepIndex >= pres.steps.length - 1;
         if (isLast) return get().finish();
-        if (pres.breakConfig.mode === 'none') return enterStep(live.stepIndex + 1);
+        // paused → the presenter is browsing: skip the break
+        if (pres.breakConfig.mode === 'none' || live.pausedAt) return enterStep(live.stepIndex + 1);
         return enterBreak();
       }
       if (live.phase === 'break') return enterStep(live.stepIndex + 1);
@@ -214,6 +234,14 @@ export const useApp = create<AppState>((set, get) => {
       const { live } = get();
       if (live.phase === 'break') return enterStep(live.stepIndex);
       if (live.phase === 'step' && live.stepIndex > 0) enterStep(live.stepIndex - 1);
+    },
+
+    goToStep: (index) => {
+      const { live, pres } = get();
+      if (index < 0 || index >= pres.steps.length) return;
+      if (live.phase !== 'step' && live.phase !== 'break') return;
+      if (index === live.stepIndex && live.phase === 'step') return;
+      enterStep(index);
     },
 
     togglePause: () =>
