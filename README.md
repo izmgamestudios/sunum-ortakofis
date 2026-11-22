@@ -47,6 +47,6 @@ Kısayollar: `←/→` adım, `Boşluk` duraklat.
 
 ```bash
 git clone -b claude/nodejs-presentation-app-zu7ljh git@github.com:izmgamestudios/sunum-ortakofis.git app
-cd app && PORT=3001 ./scripts/deploy.sh     # sonraki güncellemeler: aynı komut
+cd app && PORT=3030 ./scripts/deploy.sh     # sonraki güncellemeler: ./scripts/deploy.sh (ayarlar .deploy.env içinde)
 ```
 `scripts/deploy.sh`: git pull → `npm ci` → build → PM2 (`ecosystem.config.cjs`) → reboot'ta otomatik başlatma (crontab) → sağlık kontrolü. Uygulama `127.0.0.1:PORT` dinler; nginx/CloudPanel reverse proxy önünde durur.
