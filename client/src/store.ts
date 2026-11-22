@@ -9,6 +9,8 @@ import { elementsForAttachments } from './lib/canvasDraw';
 
 const STORAGE_KEY = 'teknodoz-sunum:v1';
 
+export type HelpTab = 'guide' | 'faq' | 'shortcuts' | 'troubleshoot' | 'support';
+
 const idleLive = (): LiveState => ({
   phase: 'idle',
   stepIndex: 0,
@@ -34,10 +36,18 @@ interface AppState {
   /** UI-only: selected step in the editor, template filter from mega menu, mobile drawer */
   activeStep: number;
   templateCategory: string;
+  templateQuery: string;
   drawerOpen: boolean;
+  searchOpen: boolean;
+  shortcutsOpen: boolean;
+  helpTab: HelpTab;
+  helpArticle: string | null;
   setActiveStep: (i: number) => void;
-  openTemplates: (category?: string) => void;
+  openTemplates: (category?: string, query?: string) => void;
   setDrawer: (open: boolean) => void;
+  setSearchOpen: (open: boolean) => void;
+  setShortcutsOpen: (open: boolean) => void;
+  openHelp: (tab?: HelpTab, article?: string | null) => void;
   pres: Presentation;
   live: LiveState;
   setView: (v: View) => void;
@@ -151,10 +161,21 @@ export const useApp = create<AppState>((set, get) => {
     view: 'setup',
     activeStep: 0,
     templateCategory: 'all',
+    templateQuery: '',
     drawerOpen: false,
+    searchOpen: false,
+    shortcutsOpen: false,
+    helpTab: 'guide',
+    helpArticle: null,
     setActiveStep: (activeStep) => set({ activeStep, view: 'setup', drawerOpen: false }),
-    openTemplates: (category = 'all') => set({ view: 'templates', templateCategory: category, drawerOpen: false }),
+    openTemplates: (category = 'all', query = '') => set({ view: 'templates', templateCategory: category, templateQuery: query, drawerOpen: false }),
     setDrawer: (drawerOpen) => set({ drawerOpen }),
+    setSearchOpen: (searchOpen) => set({ searchOpen }),
+    setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
+    openHelp: (helpTab = 'guide', helpArticle = null) => {
+      set({ view: 'faq', helpTab, helpArticle, drawerOpen: false, searchOpen: false });
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+    },
     pres: createPresentation(6),
     live: idleLive(),
 

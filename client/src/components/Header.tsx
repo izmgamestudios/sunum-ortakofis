@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../store';
 import { exportJson, exportMarkdown, exportSnmtdz, importFile, SNMTDZ_EXT } from '../lib/io';
+import { APP_EVENTS } from '../lib/nav';
 
 export function BetaBadge() {
   return <span className="beta-badge">Beta · Erken Erişim</span>;
@@ -52,6 +53,12 @@ export function FileMenu() {
   const [open, setOpen] = useState(false);
   const ref = useDismiss(open, () => setOpen(false));
   const { flash, node } = useToast();
+
+  useEffect(() => {
+    const open = () => fileRef.current?.click();
+    window.addEventListener(APP_EVENTS.import, open);
+    return () => window.removeEventListener(APP_EVENTS.import, open);
+  }, []);
 
   const onImport = async (f: File | undefined) => {
     if (!f) return;
@@ -104,8 +111,14 @@ export function FileMenu() {
           <button role="menuitem" onClick={() => openTemplates()}>
             📚 Şablonlar
           </button>
-          <button role="menuitem" onClick={() => setView('faq')}>
+          <button role="menuitem" onClick={() => useApp.getState().openHelp('guide')}>
+            📖 Kılavuz & yardım
+          </button>
+          <button role="menuitem" onClick={() => useApp.getState().openHelp('faq')}>
             ❓ SSS
+          </button>
+          <button role="menuitem" onClick={() => useApp.getState().setShortcutsOpen(true)}>
+            ⌨️ Kısayollar
           </button>
           <button role="menuitem" onClick={() => setView('credits')}>
             🙏 Credits

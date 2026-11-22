@@ -8,6 +8,10 @@ import { FRAMEWORKS } from '../lib/frameworks';
 import { MAX_STEPS } from '../lib/factory';
 import type { View } from '../types';
 import { BetaBadge, FileMenu, Logo, useDismiss } from './Header';
+import { SearchPalette, SearchTrigger } from './Search';
+import { ShortcutsModal, useGlobalShortcuts } from './Shortcuts';
+import { FAQS, GUIDE } from '../lib/help';
+import { keyLabel } from '../lib/shortcuts';
 
 /* ------------------------------------------------------------------ */
 /* Announcement bar                                                    */
@@ -15,10 +19,9 @@ import { BetaBadge, FileMenu, Logo, useDismiss } from './Header';
 const ANNOUNCE_KEY = 'teknodoz-sunum:announce-dismissed:v2';
 
 function AnnouncementBar() {
-  const setView = useApp((s) => s.setView);
   const openTemplates = useApp((s) => s.openTemplates);
   const items = [
-    { text: 'Yeni: konuşmanı canlı yazıya dök — tombala kelimeleri otomatik işaretlensin.', cta: 'SSS’de oku', go: () => setView('faq') },
+    { text: 'Yeni: Ctrl+K ile her şeyi ara — menüler, ayarlar, şablonlar, modeller, kılavuz ve kendi içeriğin.', cta: 'Kılavuzu aç', go: () => useApp.getState().openHelp('guide', 'arama-kisayol-tema') },
     { text: `Yeni: ${FRAMEWORKS.length} düşünme modeli (Ikigai, SWOT, OKR…) — şablon olarak ya da tuvale düzenlenebilir infografik olarak.`, cta: 'Modellere git', go: () => openTemplates('cerceve') },
     { text: `${Object.keys(CATEGORIES).length} kategoride ${TEMPLATES.length} hazır şablonla 1 dakikada sunuma başla.`, cta: 'Şablonlara git', go: () => openTemplates() },
   ];
@@ -172,12 +175,14 @@ function TemplatesMega({ onPick }: { onPick: () => void }) {
 }
 
 function ResourcesMega({ onPick }: { onPick: () => void }) {
-  const setView = useApp((s) => s.setView);
-  const links: { icon: string; title: string; desc: string; view: View }[] = [
-    { icon: '❓', title: 'Sıkça Sorulan Sorular', desc: 'Döküm, canlı oda, veri gizliliği, dışa aktarma', view: 'faq' },
-    { icon: '📊', title: 'Rapor & SWOT', desc: 'Skorlar, rozetler, otomatik SWOT analizi', view: 'report' },
-    { icon: '📚', title: 'Şablon galerisi', desc: `${TEMPLATES.length} hazır sunum iskeleti`, view: 'templates' },
-    { icon: '🙏', title: 'Credits', desc: 'Ekip, açık kaynak kütüphaneler, lisanslar', view: 'credits' },
+  const { openHelp, setView, setShortcutsOpen } = useApp.getState();
+  const links: { icon: string; title: string; desc: string; run: () => void }[] = [
+    { icon: '📖', title: 'Kılavuz', desc: `${GUIDE.length} adım adım rehber makalesi`, run: () => openHelp('guide') },
+    { icon: '❓', title: 'Sıkça Sorulan Sorular', desc: `${FAQS.length} soru: döküm, canlı oda, tuval, veri`, run: () => openHelp('faq') },
+    { icon: '⌨️', title: 'Klavye kısayolları', desc: 'Ctrl+K arama, G+harf gezinme, tuval tuşları', run: () => setShortcutsOpen(true) },
+    { icon: '🩺', title: 'Sorun giderme', desc: 'Zil, mikrofon, PDF, bağlantı, 502…', run: () => openHelp('troubleshoot') },
+    { icon: '🛟', title: 'Destek', desc: 'Sistem bilgisi, geri bildirim', run: () => openHelp('support') },
+    { icon: '🙏', title: 'Credits', desc: 'Ekip, açık kaynak kütüphaneler', run: () => setView('credits') },
   ];
   return (
     <div className="mega-grid mega-grid--resources">
@@ -187,7 +192,7 @@ function ResourcesMega({ onPick }: { onPick: () => void }) {
             key={l.title}
             className="mega-link"
             onClick={() => {
-              setView(l.view);
+              l.run();
               onPick();
             }}
           >
@@ -200,19 +205,22 @@ function ResourcesMega({ onPick }: { onPick: () => void }) {
         ))}
       </div>
       <div className="mega-side">
-        <p className="mega-title">Klavye kısayolları</p>
+        <p className="mega-title">Sık kullanılan kısayollar</p>
         <ul className="kbd-list small">
           <li>
-            <kbd>→</kbd> / <kbd>PgDn</kbd> sonraki adım
+            <kbd>{keyLabel('Mod')}</kbd> + <kbd>K</kbd> her şeyi ara
           </li>
           <li>
-            <kbd>←</kbd> / <kbd>PgUp</kbd> önceki adım
+            <kbd>→</kbd> / <kbd>←</kbd> adım · <kbd>Boşluk</kbd> duraklat
           </li>
           <li>
-            <kbd>Boşluk</kbd> duraklat / devam
+            <kbd>F</kbd> tam ekran · <kbd>B</kbd> zil
           </li>
           <li>
-            <kbd>Ctrl</kbd> + <kbd>Enter</kbd> not ekle
+            <kbd>G</kbd> <kbd>T</kbd> şablonlar · <kbd>G</kbd> <kbd>Y</kbd> yardım
+          </li>
+          <li>
+            <kbd>?</kbd> tüm liste
           </li>
         </ul>
       </div>
@@ -281,6 +289,7 @@ function SiteHeader() {
         </nav>
 
         <div className="header-right">
+          <SearchTrigger />
           <ThemeSwitcher />
           <FileMenu />
           <button
@@ -370,7 +379,8 @@ function SidebarNav() {
   const phase = useApp((s) => s.live.phase);
   const liveStep = useApp((s) => s.live.stepIndex);
   const templateCategory = useApp((s) => s.templateCategory);
-  const { setView, setActiveStep, setStepCount, openTemplates, start } = useApp.getState();
+  const helpTab = useApp((s) => s.helpTab);
+  const { setView, setActiveStep, setStepCount, openTemplates, start, openHelp } = useApp.getState();
   const isLive = phase === 'step' || phase === 'break';
 
   const item = (label: ReactNode, active: boolean, onClick: () => void, extra?: ReactNode) => (
@@ -417,8 +427,12 @@ function SidebarNav() {
         )}
       </NavGroup>
 
-      <NavGroup title="Yardım" defaultOpen={false}>
-        {item('❓ SSS', view === 'faq', () => setView('faq'))}
+      <NavGroup title="Yardım" defaultOpen={view === 'faq' || view === 'credits'}>
+        {item('📖 Kılavuz', view === 'faq' && helpTab === 'guide', () => openHelp('guide'))}
+        {item('❓ SSS', view === 'faq' && helpTab === 'faq', () => openHelp('faq'))}
+        {item('⌨️ Kısayollar', false, () => useApp.getState().setShortcutsOpen(true))}
+        {item('🩺 Sorun giderme', view === 'faq' && helpTab === 'troubleshoot', () => openHelp('troubleshoot'))}
+        {item('🛟 Destek', view === 'faq' && helpTab === 'support', () => openHelp('support'))}
         {item('🙏 Credits', view === 'credits', () => setView('credits'))}
       </NavGroup>
     </nav>
@@ -487,9 +501,12 @@ function SiteFooter() {
         <div>
           <p className="footer-title">Kaynaklar</p>
           <ul>
-            {link('SSS', () => setView('faq'))}
+            {link('Kılavuz', () => useApp.getState().openHelp('guide'))}
+            {link('SSS', () => useApp.getState().openHelp('faq'))}
+            {link('Kısayollar', () => useApp.getState().setShortcutsOpen(true))}
+            {link('Sorun giderme', () => useApp.getState().openHelp('troubleshoot'))}
+            {link('.snmtdz formatı', () => useApp.getState().openHelp('guide', 'disa-aktarma'))}
             {link('Credits', () => setView('credits'))}
-            {link('.snmtdz formatı', () => setView('faq'))}
           </ul>
         </div>
         <div>
@@ -540,6 +557,7 @@ function BottomNav() {
 /* ------------------------------------------------------------------ */
 export function Shell({ children }: { children: ReactNode }) {
   const view = useApp((s) => s.view);
+  useGlobalShortcuts();
   const focus = view === 'live'; // presentation mode: maximise stage
   const showContext = view === 'setup' || view === 'report';
   return (
@@ -558,6 +576,8 @@ export function Shell({ children }: { children: ReactNode }) {
       {!focus && <SiteFooter />}
       {!focus && <BottomNav />}
       <Drawer />
+      <SearchPalette />
+      <ShortcutsModal />
     </div>
   );
 }

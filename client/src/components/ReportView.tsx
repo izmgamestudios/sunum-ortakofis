@@ -106,7 +106,7 @@ export function ReportView() {
 
   return (
     <main className="report-wrap">
-      <div className="export-bar no-print">
+      <div className="export-bar no-print" data-anchor="report-export">
         <button className="btn btn-primary" onClick={pdf} disabled={busy}>
           {busy ? '⏳ PDF hazırlanıyor…' : '📄 PDF'}
         </button>
@@ -138,7 +138,7 @@ export function ReportView() {
 
         {!hasRun && <p className="callout">ℹ️ Henüz sunum yapılmadı. Sunumu tamamladığında süre, etkileşim ve SWOT analizi burada oluşur.</p>}
 
-        <section className="scores">
+        <section className="scores" data-anchor="report-scores">
           <ScoreRing value={report.overallScore} label="Genel" />
           <ScoreRing value={report.timeScore} label="Zaman" />
           <ScoreRing value={report.engagementScore} label="Etkileşim" />
@@ -198,7 +198,7 @@ export function ReportView() {
           )}
         </section>
 
-        <section>
+        <section data-anchor="report-time">
           <h2>⏱️ Adım adım zaman</h2>
           <div className="chart" role="img" aria-label="Planlanan ve gerçekleşen süreler">
             {report.steps.map((s) => (
@@ -230,7 +230,7 @@ export function ReportView() {
           </p>
         </section>
 
-        <section>
+        <section data-anchor="report-swot">
           <h2>🧩 SWOT analizi</h2>
           <p className="muted small">Otomatik maddeler sunum verisinden üretilir (italik); kendi maddelerini de ekleyebilirsin.</p>
           <div className="swot">
@@ -246,7 +246,7 @@ export function ReportView() {
           </div>
         </section>
 
-        <section>
+        <section data-anchor="report-steps">
           <h2>📚 Adım detayları</h2>
           <div className="step-cards">
             {report.steps.map((s) => {
@@ -287,7 +287,7 @@ export function ReportView() {
         </section>
 
         {pres.notes.length > 0 && (
-          <section>
+          <section data-anchor="report-notes">
             <h2>📝 Notlar & alıntılar</h2>
             <ul className="note-list note-list--report">
               {pres.notes.map((n) => (
@@ -303,7 +303,7 @@ export function ReportView() {
         )}
 
         {pres.chat.length > 0 && (
-          <section>
+          <section data-anchor="report-chat">
             <h2>💬 Anonim sohbet dökümü</h2>
             <div className="chat-list chat-list--report">
               {pres.chat.map((m) => (
@@ -319,7 +319,7 @@ export function ReportView() {
         )}
 
         {pres.transcript.length > 0 && (
-          <section>
+          <section data-anchor="report-transcript">
             <h2>🎙️ Konuşma dökümü</h2>
             {pres.steps.map((st, i) => {
               const segs = pres.transcript.filter((t) => t.stepIndex === i);
@@ -342,7 +342,7 @@ export function ReportView() {
           </section>
         )}
 
-        <section>
+        <section data-anchor="report-reflection">
           <h2>🪞 Öz değerlendirme</h2>
           <textarea
             className="input textarea"

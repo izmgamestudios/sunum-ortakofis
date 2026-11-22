@@ -113,7 +113,7 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const patch = (p: Partial<Step>) => updateStep(index, p);
   return (
-    <div className="card step-editor">
+    <div className="card step-editor" data-anchor="setup-editor">
       <div className="step-editor-head">
         <span className="step-num">{index + 1}</span>
         <input className="input input--title" value={step.title} onChange={(e) => patch({ title: e.target.value })} aria-label="Adım başlığı" />
@@ -235,7 +235,7 @@ export function SetupView() {
 
       <div className="setup-grid">
         <aside className="stack">
-          <div className="card">
+          <div className="card" data-anchor="setup-steps">
             <h2 className="card-title">⏳ Adım sayısı</h2>
             <div className="count-picker" role="radiogroup" aria-label="Adım sayısı">
               {Array.from({ length: MAX_STEPS }, (_, i) => i + 1).map((n) => (
@@ -267,17 +267,17 @@ export function SetupView() {
             </button>
           </div>
 
-          <div className="card">
+          <div className="card" data-anchor="setup-breaks">
             <h2 className="card-title">🫁 Adımlar arası geçiş</h2>
             <BreakSettings value={pres.breakConfig} onChange={(breakConfig) => updatePres({ breakConfig })} />
           </div>
 
-          <div className="card">
+          <div className="card" data-anchor="setup-roleplay">
             <h2 className="card-title">🎭 Sunum şekli</h2>
             <RoleplaySettings value={pres.roleplay} onChange={(roleplay) => updatePres({ roleplay })} />
           </div>
 
-          <div className="card">
+          <div className="card" data-anchor="setup-auto">
             <label className="switch">
               <input type="checkbox" checked={pres.autoAdvance} onChange={(e) => updatePres({ autoAdvance: e.target.checked })} />
               <span>⏭️ Süre bitince otomatik sonraki adıma geç</span>

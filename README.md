@@ -29,7 +29,15 @@ Kitle aynı ağdaysa telefondan `http://<bilgisayar-ip>:3001/?join=KOD` (veya QR
 | Notlar | Not / alıntı / aksiyon / fikir / soru — zaman damgalı, adım etiketli |
 | Konuşma dökümü | Web Speech API ile canlı yazıya dökme (tr-TR, en, de, ar). Söylenen **tombala kelimeleri ve konu ağacı başlıkları otomatik işaretlenir** (Türkçe ek/ünsüz yumuşaması duyarlı). Opsiyonel adım bazlı ses kaydı (MediaRecorder → Medya). Kelime/dk ve dolgu kelimesi analizi → rapor & SWOT. Firefox için metin yapıştırma yedeği |
 | Şablonlar | 10 kategoride 20 hazır sunum: girişimcilik, ekonomi, eğitim, sağlık, bilim, teknoloji, finans, siyaset & kamu, inanç & değerler, kişisel gelişim. Arama, kategori filtresi, rastgele öneriler |
-| SSS & Credits | Dosya menüsü ve Hazırlık sayfası altbilgisinden |
+| Tuval | Tıkla-yaz, not kağıdı, seç/taşı/döndür/boyutlandır tutamaçları, katman paneli (sırala/gizle/kilitle), çoğalt, PNG |
+| Slayt & PDF | Görsel slayt gösterisi, sayfa sayfa PDF okuyucu (pdf.js), yakınlaştırma, “Tuvale ekle” |
+| Çerçeveler | 60 düşünme/koçluk modeli (Ikigai, SWOT, OKR, Eisenhower…) — tuvale düzenlenebilir infografik ya da 3 adımlı şablon |
+| Tam ekran | HUD (kum saati, sayaç, kontroller), açılır yan panel, duraklatınca adımlar arası gezinme |
+| Zil | Son 10/30/60 sn uyarısı, son 5 sn tık, bitiş çanı (Web Audio, dosyasız) |
+| Not duvarı | İzleyici sohbeti, soruları, kelime önerileri ve notlar yapışkan not olarak; tuvale yapıştır |
+| Arama | Ctrl+K / `/`: menüler, ayarlar, komutlar, şablonlar, modeller, kılavuz, SSS, kısayollar ve kendi içeriğin; filtre + sıralama + vurgulama |
+| Yardım merkezi | Kılavuz (20 makale, okundu ilerlemesi), SSS, kısayollar, sorun giderme, destek |
+| Kısayollar | `?` listesi; G+harf gezinme, F tam ekran, B zil, Shift+T tema, Ctrl+S kaydet, tuval tuşları |
 | Rapor | Planlanan vs gerçekleşen, skorlar, rozetler, **otomatik + düzenlenebilir SWOT**, öz değerlendirme |
 | Dışa aktarma | **.snmtdz** (gzip JSON, kendi formatı), JSON, Markdown, PDF, yazdır. İçe aktarma: .snmtdz / .json |
 

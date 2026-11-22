@@ -7,7 +7,8 @@ import { LiveView } from './components/LiveView';
 import { ReportView } from './components/ReportView';
 import { AudienceView } from './components/AudienceView';
 import { TemplatesView } from './components/TemplatesView';
-import { CreditsView, FaqView } from './components/InfoViews';
+import { CreditsView } from './components/InfoViews';
+import { HelpCenter } from './components/HelpCenter';
 
 const joinCode = new URLSearchParams(window.location.search).get('join');
 
@@ -26,7 +27,7 @@ function PresenterApp() {
       {view === 'live' && <LiveView />}
       {view === 'report' && <ReportView />}
       {view === 'templates' && <TemplatesView />}
-      {view === 'faq' && <FaqView />}
+      {view === 'faq' && <HelpCenter />}
       {view === 'credits' && <CreditsView />}
     </Shell>
   );

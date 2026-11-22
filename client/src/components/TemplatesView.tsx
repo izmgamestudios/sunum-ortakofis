@@ -65,7 +65,9 @@ export function TemplatesView() {
   const initialCat = useApp((s) => s.templateCategory) as TemplateCategory | 'all';
   const [cat, setCat] = useState<TemplateCategory | 'all'>(initialCat);
   useEffect(() => setCat(initialCat), [initialCat]);
-  const [q, setQ] = useState('');
+  const initialQ = useApp((s) => s.templateQuery);
+  const [q, setQ] = useState(initialQ);
+  useEffect(() => setQ(initialQ), [initialQ]);
   const [fwGroup, setFwGroup] = useState<FwGroup | 'all'>('all');
 
   const recommended = useMemo(() => {

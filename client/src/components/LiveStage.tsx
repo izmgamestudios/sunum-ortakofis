@@ -8,6 +8,7 @@ import { Whiteboard } from './Whiteboard';
 import { SlideViewer } from './SlideViewer';
 import { StickyWall, useWallItems, WALL_META, type WallItem } from './StickyWall';
 import { MediaPanel } from './Media';
+import { APP_EVENTS } from '../lib/nav';
 
 type StageTab = 'canvas' | 'slides' | 'wall' | 'text';
 
@@ -26,6 +27,8 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
   const updateStep = useApp((s) => s.updateStep);
   const [tab, setTab] = useState<StageTab>('canvas');
   const [fs, setFs] = useState(false);
+  const fsRef = useRef(false);
+  fsRef.current = fs;
   const [drawer, setDrawer] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [done, setDone] = useState<Set<string>>(new Set());
@@ -109,6 +112,11 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
+  useEffect(() => {
+    const toggle = () => (fsRef.current ? exitFs() : enterFs());
+    window.addEventListener(APP_EVENTS.fullscreen, toggle);
+    return () => window.removeEventListener(APP_EVENTS.fullscreen, toggle);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!fs) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !document.fullscreenElement && exitFs();
