@@ -178,7 +178,7 @@ export function SearchPalette() {
   const quick: [string, () => void][] = [
     ['▶ Sunumu başlat', () => useApp.getState().start()],
     ['📚 Şablonlar', () => useApp.getState().openTemplates()],
-    ['🧩 60 model', () => useApp.getState().openTemplates('cerceve')],
+    ['🧩 63 model', () => useApp.getState().openTemplates('cerceve')],
     ['📖 Kılavuz', () => useApp.getState().openHelp('guide')],
     ['⌨️ Kısayollar', () => useApp.getState().setShortcutsOpen(true)],
   ];

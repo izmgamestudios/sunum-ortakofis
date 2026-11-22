@@ -1,6 +1,6 @@
-// client/src/lib/frameworks.ts — 60 thinking / coaching / productivity frameworks (seed data)
+// client/src/lib/frameworks.ts — thinking / coaching / productivity frameworks + business canvases (seed data)
 
-export type FwGroup = 'amac' | 'karar' | 'dusunme' | 'problem' | 'ogrenme' | 'verimlilik' | 'hedef' | 'iletisim' | 'takim' | 'oz' | 'urun';
+export type FwGroup = 'amac' | 'karar' | 'dusunme' | 'problem' | 'ogrenme' | 'verimlilik' | 'hedef' | 'iletisim' | 'takim' | 'oz' | 'urun' | 'is';
 
 export const FW_GROUPS: Record<FwGroup, { label: string; emoji: string }> = {
   amac: { label: 'Amaç & Anlam', emoji: '🧭' },
@@ -14,6 +14,7 @@ export const FW_GROUPS: Record<FwGroup, { label: string; emoji: string }> = {
   takim: { label: 'Takım & Değişim', emoji: '👥' },
   oz: { label: 'Öz Farkındalık', emoji: '🪞' },
   urun: { label: 'Ürün & Strateji', emoji: '🚀' },
+  is: { label: 'İş Modeli Kanvasları', emoji: '🧾' },
 };
 
 export type Layout =
@@ -37,7 +38,19 @@ export type Layout =
   | { kind: 'timeline'; blocks: [string, number][] }
   | { kind: 'jar' }
   | { kind: 'kano' }
-  | { kind: 'flow' };
+  | { kind: 'flow' }
+  | { kind: 'bizcanvas'; blocks: BizBlock[] }
+  | { kind: 'vpc' };
+
+/** Business-canvas cell: c1…c5 = the five top columns (t/b = top/bottom half), b1/b2 = bottom row halves. */
+export type BizArea = 'c1' | 'c2t' | 'c2b' | 'c3' | 'c4t' | 'c4b' | 'c5' | 'b1' | 'b2';
+export interface BizBlock {
+  title: string;
+  icon: string;
+  /** guiding question shown inside the block */
+  q: string;
+  area: BizArea;
+}
 
 export interface Framework {
   id: number;
@@ -111,6 +124,29 @@ export const FRAMEWORKS: Framework[] = [
   { id: 58, name: "Hanlon'un Usturası", subtitle: 'Niyet vs. İhmal Analizi', group: 'problem', desc: 'İhmal ya da bilgi eksikliğiyle açıklanabilecek şeyi kötü niyete bağlama.', parts: ['Kötü niyet mi?', 'İhmal / bilgi eksikliği mi? ✓'], layout: { kind: 'columns', colors: ['#fecaca', '#bfdbfe'] } },
   { id: 59, name: 'OKR Sistemi', subtitle: 'Objectives and Key Results', group: 'hedef', desc: 'İlham veren bir hedef ve onu ölçen 3–5 anahtar sonuç.', parts: ['Hedef (O)', 'Anahtar sonuç 1', 'Anahtar sonuç 2', 'Anahtar sonuç 3'], layout: { kind: 'table', headers: ['Hedef / Anahtar sonuç', 'Başlangıç', 'Hedef değer', 'Şu an', 'İlerleme'], rows: [['O: Topluluğu büyütmek', '', '', '', ''], ['KR1: Aktif üye 1.000 → 2.500', '1.000', '2.500', '', '%0'], ['KR2: Haftalık etkinlik 2 → 5', '2', '5', '', '%0'], ['KR3: NPS 30 → 50', '30', '50', '', '%0']] } },
   { id: 60, name: 'KPI Çerçevesi', subtitle: 'Temel Performans Göstergeleri', group: 'hedef', desc: 'Başarıyı ölçen kritik göstergeleri tanımla, hedef ve sorumlusunu belirle.', parts: ['Gösterge', 'Formül', 'Hedef', 'Sıklık', 'Sorumlu'], layout: { kind: 'table', headers: ['KPI', 'Formül', 'Hedef', 'Sıklık', 'Sorumlu'], rows: [['Aylık aktif kullanıcı', 'Tekil kullanıcı / ay', '10.000', 'Aylık', 'Ürün'], ['Dönüşüm oranı', 'Ödeyen ÷ kayıt', '%5', 'Haftalık', 'Büyüme'], ['Churn', 'Ayrılan ÷ toplam', '<%3', 'Aylık', 'Başarı'], ['', '', '', '', '']] } },
+  { id: 61, name: 'İş Modeli Kanvası', subtitle: 'Business Model Canvas — Osterwalder', group: 'is', desc: 'Bir işin değeri nasıl yarattığını, sunduğunu ve kazandığını tek sayfada 9 blokla gör.', parts: ['Kilit Ortaklar', 'Kilit Faaliyetler', 'Kilit Kaynaklar', 'Değer Önerisi', 'Müşteri İlişkileri', 'Kanallar', 'Müşteri Segmentleri', 'Maliyet Yapısı', 'Gelir Akışları'], layout: { kind: 'bizcanvas', blocks: [
+    { title: 'Kilit Ortaklar', icon: '🤝', q: 'Kimlerle çalışıyoruz? Tedarikçiler, ortaklar hangi kaynak ve faaliyetleri sağlıyor?', area: 'c1' },
+    { title: 'Kilit Faaliyetler', icon: '⚙️', q: 'Değer önerisi için en önemli işler neler?', area: 'c2t' },
+    { title: 'Kilit Kaynaklar', icon: '🧱', q: 'Hangi fiziksel, insan, finansal ve fikrî kaynaklar gerekli?', area: 'c2b' },
+    { title: 'Değer Önerisi', icon: '🎁', q: 'Hangi problemi çözüyoruz? Müşteri neden bizi seçmeli?', area: 'c3' },
+    { title: 'Müşteri İlişkileri', icon: '💞', q: 'Her segmentle nasıl bir ilişki kuruyoruz ve sürdürüyoruz?', area: 'c4t' },
+    { title: 'Kanallar', icon: '📣', q: 'Müşterilere nasıl ulaşıyor, satıyor ve teslim ediyoruz?', area: 'c4b' },
+    { title: 'Müşteri Segmentleri', icon: '👥', q: 'Kimin için değer yaratıyoruz? En önemli müşterilerimiz kim?', area: 'c5' },
+    { title: 'Maliyet Yapısı', icon: '💸', q: 'En büyük maliyetler neler? Hangi kaynak ve faaliyetler en pahalı?', area: 'b1' },
+    { title: 'Gelir Akışları', icon: '💰', q: 'Müşteriler neye, nasıl ve ne kadar ödemeye razı?', area: 'b2' },
+  ] } },
+  { id: 62, name: 'Lean Canvas', subtitle: 'Yalın Kanvas — Ash Maurya', group: 'is', desc: 'Girişimler için uyarlanmış tek sayfalık iş planı: problemden haksız avantaja 9 blok.', parts: ['Problem', 'Çözüm', 'Temel Metrikler', 'Benzersiz Değer Önerisi', 'Haksız Avantaj', 'Kanallar', 'Müşteri Segmentleri', 'Maliyet Yapısı', 'Gelir Akışları'], layout: { kind: 'bizcanvas', blocks: [
+    { title: 'Problem', icon: '🔥', q: 'En önemli 3 problem ne? Bugün nasıl çözülüyor (alternatifler)?', area: 'c1' },
+    { title: 'Çözüm', icon: '💡', q: 'Her problem için en basit çözüm ne?', area: 'c2t' },
+    { title: 'Temel Metrikler', icon: '📊', q: 'Başarıyı hangi sayılarla ölçeceğiz?', area: 'c2b' },
+    { title: 'Benzersiz Değer Önerisi', icon: '🎯', q: 'Tek, net ve akılda kalan mesaj: neden farklı ve dikkate değer?', area: 'c3' },
+    { title: 'Haksız Avantaj', icon: '🛡️', q: 'Kolayca kopyalanamayan ya da satın alınamayan ne var?', area: 'c4t' },
+    { title: 'Kanallar', icon: '📣', q: 'Müşterilere giden yol: nasıl ulaşacağız?', area: 'c4b' },
+    { title: 'Müşteri Segmentleri', icon: '👥', q: 'Hedef müşteriler kim? İlk benimseyenler kim?', area: 'c5' },
+    { title: 'Maliyet Yapısı', icon: '💸', q: 'Müşteri edinme, dağıtım, barındırma, ekip: sabit ve değişken maliyetler.', area: 'b1' },
+    { title: 'Gelir Akışları', icon: '💰', q: 'Gelir modeli, fiyat, yaşam boyu değer, brüt kâr.', area: 'b2' },
+  ] } },
+  { id: 63, name: 'Değer Önerisi Kanvası', subtitle: 'Value Proposition Canvas', group: 'is', desc: 'Ürününün (değer haritası) müşterinin işleri, acıları ve kazançlarıyla (müşteri profili) nasıl örtüştüğünü göster.', parts: ['Ürün & Hizmetler', 'Kazanç Yaratıcılar', 'Acı Gidericiler', 'Müşteri İşleri', 'Kazançlar', 'Acılar'], layout: { kind: 'vpc' } },
 ];
 
 export const frameworkById = (id: number) => FRAMEWORKS.find((f) => f.id === id);

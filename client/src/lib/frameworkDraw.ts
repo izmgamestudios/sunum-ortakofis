@@ -1,7 +1,7 @@
 // client/src/lib/frameworkDraw.ts — turns a framework definition into editable whiteboard elements
 import type { CanvasElement } from '../types';
-import type { Framework, Layout } from './frameworks';
-import { textWidth } from './canvasDraw';
+import type { BizArea, Framework, Layout } from './frameworks';
+import { STICKY_COLORS, textWidth } from './canvasDraw';
 import { uid } from './factory';
 
 const PALETTE = ['#3b8bf7', '#a93bf5', '#22c55e', '#f59e0b', '#ef4444', '#14b8a6', '#ec4899', '#6366f1', '#0ea5e9', '#84cc16', '#f97316', '#64748b'];
@@ -64,6 +64,46 @@ class Builder {
   path(points: number[], color: string, width = 6) {
     this.push({ type: 'path', color, width, points });
   }
+  /** free sticky note (not grouped/locked on insert) for filling in a canvas block */
+  sticky(x: number, y: number, w: number, h: number, colorIndex = 0, text = '…') {
+    this.push({ type: 'sticky', color: '#1f2937', width: 1, x, y, w, h, text, fontSize: 20, fill: STICKY_COLORS[colorIndex % STICKY_COLORS.length] });
+  }
+  /** left-aligned paragraph wrapped to maxW, top edge at y */
+  para(text: string, x: number, y: number, fs: number, maxW: number, color = MUTED): number {
+    const lines = wrap(text, fs, maxW);
+    this.push({ type: 'text', color, width: 1, text: lines.join('\n'), fontSize: fs, align: 'left', x, y });
+    return lines.length * fs * 1.2;
+  }
+}
+
+/** greedy word wrap using the whiteboard's text metrics */
+function wrap(text: string, fs: number, maxW: number): string[] {
+  const out: string[] = [];
+  for (const para of text.split('\n')) {
+    let line = '';
+    for (const word of para.split(/\s+/).filter(Boolean)) {
+      const next = line ? `${line} ${word}` : word;
+      if (line && textWidth(next, fs) > maxW) {
+        out.push(line);
+        line = word;
+      } else line = next;
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+/* business canvas grid: 5 top columns + 2 bottom halves */
+const BIZ = { x: 70, w: 1460, top: 150, mid: 670, bottom: 860 };
+function bizRect(a: BizArea): { x: number; y: number; w: number; h: number } {
+  const cw = BIZ.w / 5, th = BIZ.mid - BIZ.top, half = th / 2;
+  if (a === 'b1') return { x: BIZ.x, y: BIZ.mid, w: BIZ.w / 2, h: BIZ.bottom - BIZ.mid };
+  if (a === 'b2') return { x: BIZ.x + BIZ.w / 2, y: BIZ.mid, w: BIZ.w / 2, h: BIZ.bottom - BIZ.mid };
+  const c = Number(a[1]) - 1;
+  const x = BIZ.x + c * cw;
+  if (a.endsWith('t')) return { x, y: BIZ.top, w: cw, h: half };
+  if (a.endsWith('b')) return { x, y: BIZ.top + half, w: cw, h: half };
+  return { x, y: BIZ.top, w: cw, h: th };
 }
 
 /** Catmull-Rom → dense polyline so the whiteboard's smoothing draws a clean curve. */
@@ -440,6 +480,62 @@ const LAYOUTS: { [K in Layout['kind']]: (b: Builder, fw: Framework, l: Extract<L
       const [lx, ly] = pts[pts.length - 1];
       b.text(fw.parts[i], lx - 60, ly - 34, 24, col(i), { maxW: 260 });
     });
+  },
+
+  bizcanvas(b, _fw, l) {
+    l.blocks.forEach((blk, i) => {
+      const r = bizRect(blk.area);
+      const c = col(i);
+      const pad = 16;
+      b.rect(r.x + 3, r.y + 3, r.w - 6, r.h - 6, c, alpha(c, 0.07), 3);
+      const head = `${blk.icon} ${blk.title}`;
+      const bottomRow = blk.area === 'b1' || blk.area === 'b2';
+      const textW = bottomRow ? r.w * 0.5 : r.w - pad * 2 - 6;
+      const hf = b.fit(head, textW, 22, 15);
+      b.text(head, r.x + pad + 3, r.y + pad + 3 + (hf * 1.2) / 2, hf, INK, { left: true });
+      const qh = b.para(blk.q, r.x + pad + 3, r.y + pad + 12 + hf * 1.2, 15, textW);
+      if (bottomRow) {
+        const sw = Math.min(300, r.w * 0.4), sh = r.h - 44;
+        b.sticky(r.x + r.w - sw - 24, r.y + 22, sw, sh, i);
+      } else {
+        const sy = r.y + pad + 26 + hf * 1.2 + qh;
+        const sw = r.w - 56, sh = Math.min(130, r.y + r.h - sy - 18);
+        if (sh > 60) b.sticky(r.x + 28, sy, sw, sh, i);
+      }
+    });
+  },
+
+  vpc(b) {
+    // value map — square
+    const sx = 100, sy = 190, ss = 500, vx = sx + ss * 0.36, hy = sy + ss / 2;
+    const blue = '#3b8bf7', pink = '#ec4899';
+    b.rect(sx, sy, ss, ss, blue, alpha(blue, 0.06), 4);
+    b.line(vx, sy, vx, sy + ss, blue, 3);
+    b.line(vx, hy, sx + ss, hy, blue, 3);
+    b.text('🎁 Ürün &\nHizmetler', (sx + vx) / 2, sy + 60, 22, INK, { maxW: vx - sx - 20 });
+    b.text('📈 Kazanç Yaratıcılar', (vx + sx + ss) / 2, sy + 50, 22, INK, { maxW: sx + ss - vx - 30 });
+    b.text('💊 Acı Gidericiler', (vx + sx + ss) / 2, hy + 50, 22, INK, { maxW: sx + ss - vx - 30 });
+    b.sticky(sx + 20, sy + 150, vx - sx - 40, 120, 3);
+    b.sticky(vx + 30, sy + 110, sx + ss - vx - 60, 110, 2);
+    b.sticky(vx + 30, hy + 110, sx + ss - vx - 60, 110, 1);
+    b.text('Değer Haritası', sx + ss / 2, sy + ss + 40, 28, blue);
+    // customer profile — circle
+    const cx = 1220, cy = hy, r = 250, jx = cx + r * 0.35, jh = Math.sqrt(r * r - (r * 0.35) ** 2);
+    b.circle(cx, cy, r, pink, alpha(pink, 0.06), 4);
+    b.line(jx, cy - jh, jx, cy + jh, pink, 3);
+    b.line(cx - r, cy, jx, cy, pink, 3);
+    b.text('😊 Kazançlar', (cx - r * 0.55 + jx) / 2, cy - 150, 22, INK, { maxW: 260 });
+    b.text('😣 Acılar', (cx - r * 0.55 + jx) / 2, cy + 60, 22, INK, { maxW: 260 });
+    b.text('🛠️\nMüşteri\nİşleri', (jx + cx + r) / 2, cy - 70, 20, INK, { maxW: cx + r - jx - 16 });
+    b.sticky(cx - 170, cy - 110, 230, 90, 2);
+    b.sticky(cx - 170, cy + 100, 230, 90, 1);
+    b.sticky(jx + 14, cy - 10, cx + r - jx - 44, 110, 0);
+    b.text('Müşteri Profili', cx, sy + ss + 40, 28, pink);
+    // fit
+    b.line(640, cy - 22, 930, cy - 22, '#94a3b8', 4, true);
+    b.line(930, cy + 22, 640, cy + 22, '#94a3b8', 4, true);
+    b.text('UYUM', 785, cy - 64, 24, MUTED);
+    b.para('Acı gidericiler ↔ acılar · kazanç yaratıcılar ↔ kazançlar · ürünler ↔ müşteri işleri', 100, 800, 18, 1400);
   },
 
   flow(b) {

@@ -103,7 +103,11 @@ export function FrameworkPicker({ hasContent, onInsert, onClose }: Props) {
                   </li>
                 ))}
               </ul>
-              <p className="muted small">Her daire, kutu ve yazı ayrı bir katman: seçip taşıyabilir, boyutlandırabilir, çift tıklayıp yazıları düzenleyebilirsin.</p>
+              <p className="muted small">
+                {pick.group === 'is'
+                  ? 'Kanvas iskeleti kilitli bir grup olarak gelir; bloklardaki not kağıtları serbesttir: çift tıklayıp yaz, sürükle, Ctrl+D ile çoğalt.'
+                  : 'Her daire, kutu ve yazı ayrı bir katman: seçip taşıyabilir, boyutlandırabilir, çift tıklayıp yazıları düzenleyebilirsin.'}
+              </p>
               <div className="row gap-s wrap">
                 <button className="btn btn-primary" onClick={() => insert(false)}>
                   ＋ Tuvale ekle

@@ -1178,7 +1178,8 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
             onClose={() => setShowFw(false)}
             onInsert={(els, replace, fw) => {
               const g: CanvasGroup = { id: uid(), name: fw.name, lockChildren: true, frameworkId: fw.id, parentId: replace ? undefined : entered ?? undefined };
-              const grouped = els.map((x) => ({ ...x, groupId: g.id }));
+              // canvas skeleton is a locked group; sticky notes stay free so they can be filled, moved, duplicated
+              const grouped = els.map((x) => (x.type === 'sticky' ? x : { ...x, groupId: g.id }));
               const cur = latest.current;
               commit(replace ? { els: grouped, groups: [g] } : { els: [...cur.els, ...grouped], groups: [...cur.groups, g] });
               setToolState('select');

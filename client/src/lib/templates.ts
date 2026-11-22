@@ -43,6 +43,8 @@ interface TemplateStep {
   nodes?: string[];
   /** framework infographic pre-placed on the step canvas */
   framework?: number;
+  /** override the default "step N = N minutes" duration */
+  minutes?: number;
 }
 
 export interface PresentationTemplate {
@@ -60,6 +62,48 @@ export interface PresentationTemplate {
 
 const BASE_TEMPLATES: PresentationTemplate[] = [
   /* ---------------- Girişimcilik ---------------- */
+  {
+    id: 'business-model-canvas',
+    category: 'girisimcilik',
+    title: 'İş Modeli Sunumu (Business Model Canvas)',
+    description: 'Osterwalder’in 9 bloğu, 9 adım: her adım bir blok. İlk adımda tuvalde doldurulabilir İş Modeli Kanvası hazır gelir.',
+    audience: 'Yatırımcılar, kuluçka programları, ekip içi strateji',
+    level: 'Orta',
+    frameworkId: 61,
+    roleplay: { emotion: 'calm', tone: 'formal', setting: 'meeting', crowd: 2 },
+    steps: [
+      { title: 'Müşteri Segmentleri', minutes: 2, framework: 61, text: 'Kimin için değer yaratıyoruz? En önemli müşteri gruplarını ve ilk benimseyenleri anlat. Tuvaldeki kanvası sunum boyunca doldur.', words: ['kitle pazarı', 'niş', 'segment', 'persona', 'ilk benimseyen', 'B2B', 'B2C', 'ihtiyaç', 'çok taraflı'] },
+      { title: 'Değer Önerisi', minutes: 3, text: 'Hangi problemi çözüyor, hangi ihtiyacı karşılıyoruz? Müşteri neden bizi seçmeli?', words: ['yenilik', 'performans', 'kişiselleştirme', 'tasarım', 'fiyat', 'maliyet azaltma', 'risk azaltma', 'erişilebilirlik', 'kolaylık'] },
+      { title: 'Kanallar', minutes: 2, text: 'Farkındalık → değerlendirme → satın alma → teslimat → satış sonrası: müşteriye nasıl ulaşıyoruz?', tree: 'Farkındalık\n  Sosyal medya\n  İçerik / SEO\nSatış\n  Web sitesi\n  Satış ekibi\n  Ortak mağazalar\nTeslimat\nSatış sonrası' },
+      { title: 'Müşteri İlişkileri', minutes: 2, text: 'Her segmentle nasıl bir ilişki kuruyoruz: kişisel destek, self servis, topluluk, birlikte üretim?', words: ['kişisel destek', 'self servis', 'otomasyon', 'topluluk', 'birlikte üretim', 'sadakat', 'onboarding', 'geri bildirim', 'abonelik'] },
+      { title: 'Gelir Akışları', minutes: 3, text: 'Müşteriler neye, nasıl ve ne kadar ödüyor? Fiyatlandırma mekanizması ve gelir payları.', words: ['abonelik', 'satış', 'kullanım ücreti', 'lisans', 'komisyon', 'reklam', 'freemium', 'kiralama', 'dinamik fiyat'] },
+      { title: 'Kilit Kaynaklar', minutes: 2, text: 'İş modelinin çalışması için gereken fiziksel, fikrî, insan ve finansal kaynaklar.', nodes: ['Fiziksel', 'Fikrî (marka, patent, veri)', 'İnsan', 'Finansal'] },
+      { title: 'Kilit Faaliyetler', minutes: 2, text: 'Değer önerisini sunmak için mutlaka iyi yapmamız gereken işler: üretim, problem çözme, platform/ağ.', nodes: ['Üretim', 'Problem çözme', 'Platform / ağ yönetimi'] },
+      { title: 'Kilit Ortaklar', minutes: 2, text: 'Tedarikçiler, stratejik ortaklıklar, ortak girişimler: kim hangi kaynağı veya faaliyeti sağlıyor?', words: ['tedarikçi', 'stratejik ortaklık', 'ortak girişim', 'rakiplerle iş birliği', 'ölçek ekonomisi', 'risk paylaşımı', 'lisans', 'dağıtıcı', 'yatırımcı'] },
+      { title: 'Maliyet Yapısı & Kapanış', minutes: 3, text: 'En büyük sabit ve değişken maliyetler; maliyet odaklı mı değer odaklı mı? Kanvası birlikte gözden geçir ve tek cümleyle kapan.', tree: 'Sabit maliyetler\nDeğişken maliyetler\nÖlçek ekonomisi\nKârlılık yolu\n  Başa baş noktası\n  Birim ekonomisi\nKapanış cümlesi' },
+    ],
+  },
+  {
+    id: 'lean-canvas',
+    category: 'girisimcilik',
+    title: 'Lean Canvas Sunumu',
+    description: 'Ash Maurya’nın yalın kanvası 9 adımda: problemden haksız avantaja. Erken aşama girişimler ve fikir doğrulama için.',
+    audience: 'Girişimciler, hackathon jürisi, mentorlar',
+    level: 'Başlangıç',
+    frameworkId: 62,
+    roleplay: { emotion: 'excited', tone: 'inspiring', setting: 'stage', crowd: 3 },
+    steps: [
+      { title: 'Problem', minutes: 2, framework: 62, text: 'En önemli 3 problem ve bugünkü alternatifler. Tuvaldeki Lean Canvas’ı her adımda doldur.', words: ['acı noktası', 'alternatif', 'zaman kaybı', 'maliyet', 'verimsizlik', 'risk', 'kullanıcı hikâyesi', 'mevcut çözüm', 'boşluk'] },
+      { title: 'Müşteri Segmentleri', minutes: 2, text: 'Hedef müşteriler ve ilk benimseyenler kim? Onları nasıl tanırız?', words: ['ilk benimseyen', 'persona', 'niş', 'segment', 'karar verici', 'kullanıcı', 'alıcı', 'pazar', 'topluluk'] },
+      { title: 'Benzersiz Değer Önerisi', minutes: 3, text: 'Tek, net, akılda kalan mesaj. Üst düzey kavram: “X için Y”.', words: ['fark', 'mesaj', 'fayda', 'sonuç', 'basitlik', 'hız', 'güven', 'X için Y', 'vaat'] },
+      { title: 'Çözüm', minutes: 2, text: 'Her problem için en basit çözüm (MVP özellikleri).', nodes: ['Problem 1 → çözüm', 'Problem 2 → çözüm', 'Problem 3 → çözüm', 'MVP kapsamı'] },
+      { title: 'Kanallar', minutes: 2, text: 'Müşterilere giden yol: ücretsiz ve ücretli kanallar, gelen ve giden pazarlama.', words: ['içerik', 'SEO', 'sosyal medya', 'topluluk', 'referans', 'ortaklık', 'reklam', 'etkinlik', 'viral döngü'] },
+      { title: 'Gelir Akışları', minutes: 2, text: 'Gelir modeli, fiyat, yaşam boyu değer (LTV), brüt kâr.', words: ['fiyat', 'abonelik', 'LTV', 'brüt kâr', 'freemium', 'komisyon', 'ödeme isteği', 'deneme', 'paket'] },
+      { title: 'Maliyet Yapısı', minutes: 2, text: 'Müşteri edinme maliyeti (CAC), dağıtım, barındırma, ekip; başa baş noktası.', words: ['CAC', 'barındırma', 'ekip', 'pazarlama', 'sabit', 'değişken', 'başa baş', 'nakit akışı', 'runway'] },
+      { title: 'Temel Metrikler', minutes: 2, text: 'Başarıyı hangi sayılarla ölçeceğiz? Edinme, aktivasyon, elde tutma, gelir, tavsiye.', nodes: ['Edinme', 'Aktivasyon', 'Elde tutma', 'Gelir', 'Tavsiye', 'Kuzey yıldızı metriği'] },
+      { title: 'Haksız Avantaj & Kapanış', minutes: 3, text: 'Kolayca kopyalanamayan ne var? Sonraki deney ve kapanış cümlesi.', tree: 'Haksız avantaj\n  İçeriden bilgi\n  Topluluk\n  Ağ etkisi\n  Ekip\nSonraki deney\nKapanış cümlesi' },
+    ],
+  },
   {
     id: 'pitch-deck',
     category: 'girisimcilik',
@@ -394,7 +438,7 @@ function frameworkCanvas(id?: number): { canvas: CanvasElement[]; groups: Canvas
   const fw = id ? frameworkById(id) : undefined;
   if (!fw) return { canvas: [], groups: [] };
   const g: CanvasGroup = { id: uid(), name: fw.name, lockChildren: true, frameworkId: fw.id };
-  return { canvas: buildFramework(fw).map((e) => ({ ...e, groupId: g.id })), groups: [g] };
+  return { canvas: buildFramework(fw).map((e) => (e.type === 'sticky' ? e : { ...e, groupId: g.id })), groups: [g] };
 }
 
 /** One 3-step template per framework: the model (diagram on canvas) → your example (parts as tombala) → action plan. */
@@ -433,11 +477,12 @@ export function presentationFromTemplate(t: PresentationTemplate): Presentation 
       topicMode: s.words ? 'tombala' : s.tree || s.nodes ? 'tree' : 'free',
       words: s.words ?? [],
       topicTree: s.nodes ? s.nodes.map((n) => createNode(n)) : s.tree ? parseOutline(s.tree) : [],
+      ...(s.minutes ? { durationSec: s.minutes * 60 } : {}),
       ...frameworkCanvas(s.framework),
     })),
   };
 }
 
 export function totalMinutes(t: PresentationTemplate): number {
-  return (t.steps.length * (t.steps.length + 1)) / 2;
+  return t.steps.reduce((sum, s, i) => sum + (s.minutes ?? i + 1), 0);
 }
