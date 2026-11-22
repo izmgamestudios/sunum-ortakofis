@@ -42,3 +42,11 @@ Kısayollar: `←/→` adım, `Boşluk` duraklat.
 - `client/src/lib/templates.ts` — şablon seed verisi.
 - `client/src` — Vite + React + TypeScript + Zustand; veriler IndexedDB’de (medya dahil) saklanır.
 - PDF, Türkçe karakter sorunu olmaması için `html2canvas-pro` + `jsPDF` ile rasterize edilir (lazy-load).
+
+## Sunucuya kurulum (CloudPanel / PM2)
+
+```bash
+git clone -b claude/nodejs-presentation-app-zu7ljh git@github.com:izmgamestudios/sunum-ortakofis.git app
+cd app && PORT=3001 ./scripts/deploy.sh     # sonraki güncellemeler: aynı komut
+```
+`scripts/deploy.sh`: git pull → `npm ci` → build → PM2 (`ecosystem.config.cjs`) → reboot'ta otomatik başlatma (crontab) → sağlık kontrolü. Uygulama `127.0.0.1:PORT` dinler; nginx/CloudPanel reverse proxy önünde durur.

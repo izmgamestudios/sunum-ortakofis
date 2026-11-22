@@ -10,6 +10,8 @@ import { existsSync } from 'node:fs';
 import { Server, type Socket } from 'socket.io';
 
 const PORT = Number(process.env.PORT ?? 3001);
+/** Behind a reverse proxy (CloudPanel/nginx) bind to 127.0.0.1 so the app port is not publicly reachable. */
+const HOST = process.env.HOST ?? '0.0.0.0';
 const IS_PROD = process.env.NODE_ENV === 'production';
 const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_MSG_LEN = 500;
@@ -91,6 +93,7 @@ function allow(bucket: RateBucket, rate: number, burst: number): boolean {
 
 const app = express();
 app.disable('x-powered-by');
+app.set('trust proxy', 'loopback');
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -251,6 +254,6 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
-httpServer.listen(PORT, () => {
-  console.log(`Teknodoz Sunum server → http://localhost:${PORT}`);
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Teknodoz Sunum server → http://${HOST}:${PORT}`);
 });

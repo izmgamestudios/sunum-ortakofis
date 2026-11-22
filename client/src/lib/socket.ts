@@ -5,7 +5,8 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io({ path: '/socket.io', transports: ['websocket', 'polling'], reconnectionDelayMax: 5000 });
+    // default transports: polling first, then upgrade → still works if the proxy blocks WebSocket
+    socket = io({ path: '/socket.io', reconnectionDelayMax: 5000 });
   }
   return socket;
 }
