@@ -29,7 +29,7 @@ Zaman kutulu adımlar · tek tuval · 66 çerçeve ve iş kanvası · şablonlar
 - Maliyet kontrolü: kullanıcı başına günlük kota, sunucu tarafı anahtar, önbellek; ileride Pro.
 - **Kabul:** taslak < 15 sn; geri bildirim rapora “🤖 Koç notları” olarak eklenir.
 
-## Sprint 4 — Gelişim panosu ve rozetler
+## ✅ Sprint 4 — Gelişim panosu ve rozetler (tamamlandı)
 - Sunumdan sunuma: süreye uyum %, dakikada kelime, dolgu oranı, tombala skoru trendi.
 - Seriler (haftalık prova), rozetler (ilk pitch, süreye tam uyum, 10 sunum, sıfır dolgu…).
 - Topluluk: herkese açık profil (isteğe bağlı), “en çok gelişen” listesi.

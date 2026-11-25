@@ -26,7 +26,7 @@ interface AccountState {
 
 export const useAccount = create<AccountState>(() => ({ email: null, ready: false, mailReady: false, sync: 'off', message: null, lastSync: null, used: 0, quota: 0 }));
 
-const DEVICE = uid();
+export const DEVICE = uid();
 const LOGIN_AT_KEY = 'teknodoz-sunum:account-login-at';
 
 class HttpError extends Error {
@@ -38,7 +38,7 @@ class HttpError extends Error {
     super(message);
   }
 }
-async function me<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function me<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api/me${path}`, {
     ...init,
     credentials: 'same-origin',

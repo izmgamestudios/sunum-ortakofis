@@ -6,6 +6,7 @@ import { SetupView } from './components/SetupView';
 import { initCloudSync } from './lib/cloud';
 import { initAccount } from './lib/account';
 import { initInteract } from './lib/interact';
+import { initProgress } from './lib/progress';
 
 const LiveView = lazy(() => import('./components/LiveView').then((m) => ({ default: m.LiveView })));
 const ReportView = lazy(() => import('./components/ReportView').then((m) => ({ default: m.ReportView })));
@@ -13,6 +14,7 @@ const TemplatesView = lazy(() => import('./components/TemplatesView').then((m) =
 const HelpCenter = lazy(() => import('./components/HelpCenter').then((m) => ({ default: m.HelpCenter })));
 const CreditsView = lazy(() => import('./components/InfoViews').then((m) => ({ default: m.CreditsView })));
 const LibraryView = lazy(() => import('./components/LibraryView').then((m) => ({ default: m.LibraryView })));
+const ProgressView = lazy(() => import('./components/ProgressView').then((m) => ({ default: m.ProgressView })));
 const PixelView = lazy(() => import('./components/PixelView').then((m) => ({ default: m.PixelView })));
 const AudienceView = lazy(() => import('./components/AudienceView').then((m) => ({ default: m.AudienceView })));
 const SharedEntry = lazy(() => import('./components/SharedEntry').then((m) => ({ default: m.SharedEntry })));
@@ -36,6 +38,7 @@ function PresenterApp() {
       initCloudSync();
       void initAccount();
       initInteract();
+      void initProgress();
     });
   }, []);
 
@@ -47,6 +50,7 @@ function PresenterApp() {
         {view === 'setup' && <SetupView />}
         {view === 'live' && <LiveView />}
         {view === 'report' && <ReportView />}
+        {view === 'progress' && <ProgressView />}
         {view === 'templates' && <TemplatesView />}
         {view === 'faq' && <HelpCenter />}
         {view === 'credits' && <CreditsView />}

@@ -5412,3 +5412,48 @@ a.footer-link {
   background: linear-gradient(90deg, #7c3aed, #db2777);
 }
 @media print { .coming-soon { display: none; } }
+
+/* ---------- Sprint 4: progress dashboard ---------- */
+.progress-page { display: flex; flex-direction: column; gap: 16px; }
+.progress-page .section-title { margin: 8px 0 0; }
+.progress-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.level-card { display: flex; gap: 16px; align-items: center; }
+.level-emoji { font-size: 44px; width: 72px; height: 72px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-2); flex: none; }
+.level-name { font-size: 1.35rem; }
+.stack-xs { display: flex; flex-direction: column; gap: 4px; }
+.grow { flex: 1; min-width: 0; }
+.xp-bar, .cb-bar { display: block; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.xp-bar > span, .cb-bar > span { display: block; height: 100%; background: var(--grad); border-radius: inherit; transition: width .4s; }
+.streak-card { display: flex; flex-direction: column; gap: 10px; }
+.streak-num { font-size: 1.6rem; }
+.week-strip { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+.week-cell { aspect-ratio: 1; border-radius: 6px; display: grid; place-items: center; font-size: .7rem; font-weight: 700; color: #fff; background: var(--surface-2); }
+.week-cell.lvl-1 { background: color-mix(in srgb, var(--purple) 40%, var(--surface-2)); }
+.week-cell.lvl-2 { background: color-mix(in srgb, var(--purple) 70%, var(--surface-2)); }
+.week-cell.lvl-3 { background: var(--purple); }
+.week-cell.is-now { outline: 2px solid var(--blue); outline-offset: 1px; }
+.trend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.trend { display: flex; flex-direction: column; gap: 4px; padding: 14px; }
+.trend-head { display: flex; justify-content: space-between; align-items: center; }
+.trend-value { font-size: 1.4rem; }
+.trend-delta { font-size: .78rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.trend-delta.is-good { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
+.trend-delta.is-bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.trend-chart { width: 100%; height: 70px; overflow: visible; }
+.trend-line { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend-dot { fill: var(--purple); }
+.trend-band { fill: color-mix(in srgb, var(--success) 14%, transparent); }
+.career-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.career-badge { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); opacity: .7; }
+.career-badge.is-earned { opacity: 1; border-color: transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; border: 2px solid transparent; }
+.cb-emoji { font-size: 28px; }
+.career-badge:not(.is-earned) .cb-emoji { filter: grayscale(1); }
+.table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.table th, .table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.table th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+.progress-table td.truncate { max-width: 260px; }
+.progress-page > .card:has(.progress-table) { overflow-x: auto; }
+.empty-progress { padding: 40px 20px; align-items: center; }
+.empty-emoji { font-size: 48px; }
+.fresh-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border: 2px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; margin-bottom: 16px; }
+@media (max-width: 560px) { .level-emoji { width: 56px; height: 56px; font-size: 34px; } }

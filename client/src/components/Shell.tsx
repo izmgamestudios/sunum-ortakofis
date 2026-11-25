@@ -330,6 +330,7 @@ function SiteHeader() {
           {navBtn('setup', 'Hazırlık')}
           {navBtn('live', 'Sunum')}
           {navBtn('report', 'Rapor')}
+          {navBtn('progress', 'Gelişimim')}
           {megaBtn('templates', 'Şablonlar', ['templates'])}
           {megaBtn('resources', 'Kaynaklar', ['faq', 'credits', 'pixels'])}
           {mega && (
@@ -456,6 +457,7 @@ function SidebarNav() {
       <NavGroup title="Sunumlarım">
         {item('🗂️ Tüm sunumlarım', view === 'library', () => setView('library'))}
         {item('🌍 Keşfet (herkese açık)', false, () => setView('library'))}
+        {item('📈 Gelişimim', view === 'progress', () => setView('progress'))}
       </NavGroup>
 
       <NavGroup title="Hazırlık">
@@ -558,6 +560,7 @@ function SiteFooter() {
             {link('Hazırlık', () => setView('setup'))}
             {link('Canlı sunum', () => setView('live'))}
             {link('Rapor & SWOT', () => setView('report'))}
+            {link('Gelişimim', () => setView('progress'))}
             {link('Şablonlar', () => openTemplates())}
           </ul>
         </div>

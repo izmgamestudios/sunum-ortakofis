@@ -170,5 +170,62 @@ export function createUserLib(io: Server, dataDir: string, auth: Auth, secret: s
     res.json({ ok: true });
   });
 
+  /* ---------- progress history (Sprint 4): small append-only run summaries, merged by id ---------- */
+  const HIST_MAX = 2000;
+  const num = (v: unknown, lo: number, hi: number): number | null => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : null);
+  const cleanRun = (x: unknown): Record<string, unknown> | null => {
+    if (!x || typeof x !== 'object') return null;
+    const o = x as Record<string, unknown>;
+    const id = str(o.id, 140);
+    const endedAt = num(o.endedAt, 0, 9e15);
+    if (!id || !/^[A-Za-z0-9:_-]+$/.test(id) || !endedAt) return null;
+    return {
+      id,
+      presId: str(o.presId, 64),
+      title: str(o.title, 120),
+      endedAt,
+      plannedSec: num(o.plannedSec, 0, 1e6) ?? 0,
+      actualSec: num(o.actualSec, 0, 1e6) ?? 0,
+      steps: num(o.steps, 0, 60) ?? 0,
+      completion: num(o.completion, 0, 1) ?? 0,
+      timeScore: num(o.timeScore, 0, 100) ?? 0,
+      engagementScore: num(o.engagementScore, 0, 100) ?? 0,
+      contentScore: num(o.contentScore, 0, 100) ?? 0,
+      overallScore: num(o.overallScore, 0, 100) ?? 0,
+      words: num(o.words, 0, 1e6) ?? 0,
+      wpm: num(o.wpm, 0, 1000),
+      fillerRate: num(o.fillerRate, 0, 1),
+      audiencePeak: num(o.audiencePeak, 0, 1e5) ?? 0,
+      reactions: num(o.reactions, 0, 1e6) ?? 0,
+      polls: num(o.polls, 0, 1000) ?? 0,
+      jury: o.jury === true,
+      badges: Array.isArray(o.badges) ? o.badges.slice(0, 20).map((b) => str(b, 40)).filter(Boolean) : [],
+    };
+  };
+  const histFile = (email: string) => path.join(dirOf(email), 'history.json');
+  const loadHist = async (email: string): Promise<Record<string, unknown>[]> => {
+    try {
+      return JSON.parse(await readFile(histFile(email), 'utf8')) as Record<string, unknown>[];
+    } catch {
+      return [];
+    }
+  };
+  r.get('/history', async (req, res) => res.json({ items: await loadHist(emailOf(req)!) }));
+  r.post('/history', async (req, res) => {
+    const email = emailOf(req)!;
+    const incoming = (Array.isArray(req.body?.items) ? req.body.items : []).slice(0, HIST_MAX).map(cleanRun).filter(Boolean) as Record<string, unknown>[];
+    const items = await queued(email, async () => {
+      const cur = await loadHist(email);
+      const byId = new Map(cur.map((x) => [x.id as string, x]));
+      let added = 0;
+      for (const it of incoming) if (!byId.has(it.id as string)) (byId.set(it.id as string, it), added++);
+      const all = [...byId.values()].sort((a, b) => (a.endedAt as number) - (b.endedAt as number)).slice(-HIST_MAX);
+      if (added) await atomicWrite(histFile(email), JSON.stringify(all));
+      return all;
+    });
+    if (incoming.length) io.to(room(email)).emit('history:changed', { by: req.get('x-device') ?? '' });
+    res.json({ items });
+  });
+
   return r;
 }

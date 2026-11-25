@@ -62,6 +62,7 @@ const newPage = async (opts = {}) => {
 
 try {
   const page = await newPage();
+  await page.clock.install(); // lets tests fast-forward the presentation timer
 
   await check('home loads (setup view, header, logo)', async () => {
     await page.goto(BASE);
@@ -78,8 +79,11 @@ try {
     await page.waitForSelector('.break-screen');
     await page.getByRole('button', { name: /Hazırım, devam/ }).click();
     expect((await page.locator('.hud .step-dot.is-current .dot-num').innerText()) === '2', 'not on step 2');
+    await page.clock.fastForward(45_000); // runs < 30 s don't count toward progress
     await page.getByRole('button', { name: 'Sunumu bitir' }).click();
     await page.waitForSelector('.report', { timeout: 10000 });
+    await page.waitForSelector('.fresh-badges', { timeout: 5000 });
+    expect((await page.locator('.fresh-badges').innerText()).includes('İlk Pitch'), 'first-run badge banner missing');
   });
 
   await check('per-gap break toggle skips the break', async () => {
@@ -91,8 +95,19 @@ try {
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(300);
     expect((await page.locator('.break-screen').count()) === 0, 'break shown although switched off');
+    await page.clock.fastForward(45_000);
     await page.getByRole('button', { name: 'Sunumu bitir' }).click();
     await page.waitForSelector('.report');
+  });
+
+  await check('progress dashboard: runs, streak, level, career badges', async () => {
+    await page.locator('.main-nav').getByRole('button', { name: 'Gelişimim' }).click();
+    await page.waitForSelector('.progress-page .level-card');
+    const rows = await page.locator('.progress-table tbody tr').count();
+    expect(rows >= 2, `expected >= 2 runs, got ${rows}`);
+    expect((await page.locator('.streak-num').innerText()).includes('1'), 'weekly streak should be 1');
+    expect((await page.locator('.career-badge.is-earned', { hasText: 'İlk Pitch' }).count()) === 1, 'İlk Pitch not earned');
+    expect((await page.locator('.trend').count()) === 5, 'expected 5 trend cards');
   });
 
   await check('templates: search + start Lean Canvas (9 steps)', async () => {

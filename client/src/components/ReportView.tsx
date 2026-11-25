@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ReportInteract } from './Interact';
 import { AiCoachTeaser } from './ComingSoon';
+import { FreshBadges } from './ProgressView';
 import { useApp } from '../store';
 import type { Swot } from '../types';
 import { buildReport, fmtDuration } from '../lib/report';
@@ -146,6 +147,8 @@ export function ReportView() {
         </header>
 
         {!hasRun && <p className="callout">ℹ️ Henüz sunum yapılmadı. Sunumu tamamladığında süre, etkileşim ve SWOT analizi burada oluşur.</p>}
+
+        <FreshBadges />
 
         <section className="scores" data-anchor="report-scores">
           <ScoreRing value={report.overallScore} label="Genel" />

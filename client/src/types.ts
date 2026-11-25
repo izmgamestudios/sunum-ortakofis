@@ -347,4 +347,4 @@ export interface LiveState {
   outro?: boolean;
 }
 
-export type View = 'library' | 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits' | 'pixels';
+export type View = 'library' | 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits' | 'pixels' | 'progress';
