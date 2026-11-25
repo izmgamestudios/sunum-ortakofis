@@ -16,7 +16,9 @@
     "build:client": "tsc -p tsconfig.json --noEmit && vite build",
     "build:server": "tsc -p server/tsconfig.json",
     "start": "NODE_ENV=production node dist-server/index.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p server/tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p server/tsconfig.json --noEmit",
+    "test:e2e": "node tests/e2e/smoke.mjs",
+    "test": "npm run typecheck && npm run build && npm run test:e2e"
   },
   "dependencies": {
     "compression": "^1.8.2",
@@ -44,6 +46,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "concurrently": "^10.0.7",
+    "playwright": "^1.63.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.8"

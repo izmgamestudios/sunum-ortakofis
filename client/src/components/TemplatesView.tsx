@@ -8,10 +8,6 @@ import { FW_GROUPS, type FwGroup } from '../lib/frameworks';
 import { FwThumb } from './FrameworkPicker';
 import { AddTemplateDialog } from './StepTools';
 
-function isPristine(p: ReturnType<typeof useApp.getState>['pres']): boolean {
-  return !p.steps.some((s) => s.text || s.attachments.length || s.canvas.length || s.words.length || s.topicTree.length) && !p.run.startedAt;
-}
-
 function TemplateCard({ t, onUse }: { t: PresentationTemplate; onUse: (t: PresentationTemplate) => void }) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -91,8 +87,7 @@ export function TemplatesView() {
   });
 
   const use = (t: PresentationTemplate) => {
-    const cur = useApp.getState().pres;
-    if (!isPristine(cur) && !confirm(`“${cur.title}” sunumunun yerine “${t.title}” şablonu açılsın mı? Mevcut sunumu önce .snmtdz olarak dışa aktarmanı öneririz.`)) return;
+    // the current presentation stays in “Sunumlarım”; the template opens as a new one
     load(presentationFromTemplate(t));
     setView('setup');
   };

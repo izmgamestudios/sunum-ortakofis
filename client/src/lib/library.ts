@@ -115,7 +115,14 @@ export async function removePresentation(id: string): Promise<void> {
 }
 
 export function setCloud(presId: string, cloud: CloudLink | undefined): void {
-  useLibrary.setState((s) => ({ entries: s.entries.map((e) => (e.id === presId ? { ...e, cloud } : e)) }));
+  useLibrary.setState((s) => {
+    if (s.entries.some((e) => e.id === presId)) return { entries: s.entries.map((e) => (e.id === presId ? { ...e, cloud } : e)) };
+    // a brand-new presentation may not be in the library yet (save is debounced) — never drop the share link / owner key
+    const cur = useApp.getState().pres;
+    if (cur.id !== presId) return s;
+    void idbSet(presKey(cur.id), cur);
+    return { entries: [{ ...entryFor(cur), cloud }, ...s.entries] };
+  });
   void persist();
 }
 

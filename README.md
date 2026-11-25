@@ -105,3 +105,8 @@ chmod 600 .env && pm2 restart teknodoz-sunum
 ```
 
 Gmail uygulama şifresi: Google Hesabı → Güvenlik → 2 Adımlı Doğrulama → Uygulama şifreleri. `.env` yoksa üretimde giriş kodu gönderilmez (geliştirmede kod sunucu günlüğüne yazılır).
+
+## Test ve yedek
+
+- `npm test` — tip kontrolü + derleme + uçtan uca duman testi (kendi sunucusunu geçici veriyle açar). GitHub Actions her push'ta aynısını çalıştırır.
+- `./scripts/backup.sh` — paylaşılan sunumları (`data/`) `~/backups/teknodoz-sunum` altına arşivler, son 14'ünü tutar. `deploy.sh` her gece 03:17 için cron kaydı ekler. Geri yükleme: uygulamayı durdur, arşivi proje klasöründe `tar -xzf` ile aç, yeniden başlat.

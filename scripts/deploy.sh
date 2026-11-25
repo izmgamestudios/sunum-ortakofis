@@ -34,7 +34,10 @@ pm2 save
 PM2_BIN="$(command -v pm2)"
 CRON_LINE="@reboot PATH=$(dirname "$(command -v node)"):\$PATH $PM2_BIN resurrect"
 # (`crontab -l` exits 1 when empty and grep exits 1 on no match → guard both, otherwise set -e/pipefail aborts here)
-{ { crontab -l 2>/dev/null || true; } | { grep -v 'pm2 resurrect' || true; }; echo "$CRON_LINE"; } | crontab - \
+# + daily 03:17 backup of shared presentations (data/), last 14 kept in ~/backups/teknodoz-sunum
+mkdir -p "$HOME/backups"
+BACKUP_LINE="17 3 * * * $APP_DIR/scripts/backup.sh >> $HOME/backups/teknodoz-sunum.log 2>&1"
+{ { crontab -l 2>/dev/null || true; } | { grep -v -e 'pm2 resurrect' -e 'scripts/backup.sh' || true; }; echo "$CRON_LINE"; echo "$BACKUP_LINE"; } | crontab - \
   || echo "⚠️  crontab yazılamadı — reboot sonrası 'pm2 resurrect' elle çalıştırılmalı"
 
 sleep 2
