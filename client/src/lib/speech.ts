@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { useApp } from '../store';
 import { uid } from './factory';
 import { addRecording } from './recordings';
+import { cleanMic, type MicChain } from './media';
 import { useSettings } from './settings';
 
 /* Minimal typings — Web Speech API is not in lib.dom for all TS versions */
@@ -70,7 +71,7 @@ interface SpeechState {
 let recognizer: SpeechRecognitionLike | null = null;
 let wantListening = false;
 let mediaRecorder: MediaRecorder | null = null;
-let mediaStream: MediaStream | null = null;
+let micChain: MicChain | null = null;
 let matchTimer: ReturnType<typeof setTimeout> | undefined;
 
 export const useSpeech = create<SpeechState>((set, get) => ({
@@ -160,10 +161,11 @@ export const useSpeech = create<SpeechState>((set, get) => ({
 async function startRecording(): Promise<void> {
   if (mediaRecorder || typeof MediaRecorder === 'undefined') return;
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micChain = await cleanMic();
+    const chain = micChain;
     const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((m) => MediaRecorder.isTypeSupported(m)) ?? '';
-    const stream = mediaStream;
-    const rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined);
+    const stream = chain.stream;
+    const rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 64000 } : undefined);
     const parts: Blob[] = [];
     const stepIdx = useApp.getState().live.stepIndex;
     const presId = useApp.getState().pres.id;
@@ -175,7 +177,7 @@ async function startRecording(): Promise<void> {
     rec.onstop = async () => {
       const type = rec.mimeType || 'audio/webm';
       const blob = new Blob(parts, { type });
-      stream.getTracks().forEach((t) => t.stop());
+      chain.stop();
       if (!mediaRecorder) useSpeech.setState({ recording: false });
       // skip accidental sub-second recordings (size thresholds vary by codec)
       if (Date.now() - startedAt < 1000 || !blob.size) return;
@@ -198,7 +200,7 @@ function stopRecording(): void {
   const rec = mediaRecorder;
   // detach synchronously so a new recording can start before the old onstop fires
   mediaRecorder = null;
-  mediaStream = null;
+  micChain = null;
   if (rec && rec.state !== 'inactive') rec.stop();
 }
 

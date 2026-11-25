@@ -32,13 +32,13 @@ export function TranscriptPanel() {
   const removeTranscript = useApp((s) => s.removeTranscript);
   const { supported, listening, recording, keepAudio, lang, interim, error, lastMatches, start, stop, setLang, setKeepAudio } = useSpeech();
   const [onlyStep, setOnlyStep] = useState(true);
-  const { autoListen, set: setSettings } = useSettings();
+  const { autoListen, noiseReduce, set: setSettings } = useSettings();
   const [manual, setManual] = useState('');
   const [manualHits, setManualHits] = useState<string[] | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const list = useMemo(() => (onlyStep ? transcript.filter((t) => t.stepIndex === stepIndex) : transcript), [transcript, onlyStep, stepIndex]);
-  const stats = useMemo(() => speechStats(list.map((t) => t.text)), [list]);
+  const stats = useMemo(() => speechStats([...list.map((t) => t.text), interim]), [list, interim]);
   const minutes = startedAt ? Math.max(1 / 60, (Date.now() - startedAt) / 60000) : 1;
   const wpm = onlyStep ? null : Math.round(stats.words / minutes);
 
@@ -80,6 +80,10 @@ export function TranscriptPanel() {
         <span>⏱️ Sunum başlayınca otomatik dinle (molada ve duraklatınca durur, adım başlayınca devam eder)</span>
       </label>
       <label className="switch small">
+        <input type="checkbox" checked={noiseReduce} disabled={recording} onChange={(e) => setSettings({ noiseReduce: e.target.checked })} />
+        <span>🎚️ Dip ses / parazit temizleme (gürültü bastırma, uğultu ve tıslama filtresi, sessizlikte otomatik kısma)</span>
+      </label>
+      <label className="switch small">
         <input type="checkbox" checked={keepAudio} disabled={active} onChange={(e) => setKeepAudio(e.target.checked)} />
         <span>🔴 Sesimi de kaydet (yalnızca bu cihazın mikrofonu · her adım ayrı dosya · Rapor’dan indirilir)</span>
       </label>
@@ -109,6 +113,25 @@ export function TranscriptPanel() {
         <span>Sadece bu adım</span>
       </label>
 
+      {listening && (
+        <div className={`live-caption ${interim ? 'is-speaking' : ''}`} aria-live="polite">
+          <span className="live-caption-head">
+            <span className="listen-dot is-on" /> Canlı yazı
+          </span>
+          <p>
+            {interim ? (
+              <>
+                {interim}
+                <span className="caret" aria-hidden>
+                  ▍
+                </span>
+              </>
+            ) : (
+              <span className="muted">Dinliyorum… konuştukça kelimeler burada anında belirir.</span>
+            )}
+          </p>
+        </div>
+      )}
       <div className="transcript-list" role="log" aria-live="polite">
         {list.map((t) => (
           <div key={t.id} className="seg">
@@ -124,8 +147,7 @@ export function TranscriptPanel() {
             </button>
           </div>
         ))}
-        {interim && <div className="seg seg--interim">{interim}…</div>}
-        {!list.length && !interim && <p className="muted empty">{active ? 'Dinliyorum… konuşmaya başla.' : 'Henüz döküm yok.'}</p>}
+        {!list.length && !interim && !listening && <p className="muted empty">{active ? 'Ses kaydı sürüyor (yazıya dökme kapalı).' : 'Henüz döküm yok.'}</p>}
         <div ref={endRef} />
       </div>
 

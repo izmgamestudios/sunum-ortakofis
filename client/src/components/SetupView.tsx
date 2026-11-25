@@ -6,7 +6,7 @@ import { MinuteInput } from './MinuteInput';
 import { RichText } from './RichText';
 import { useApp } from '../store';
 import type { BreakActivity, BreakConfig, Step, TopicMode } from '../types';
-import { MAX_STEPS } from '../lib/factory';
+import { QUICK_STEPS } from '../lib/factory';
 import { BREAK_ACTIVITIES } from '../lib/catalog';
 import { fmtDuration } from '../lib/report';
 import { RoleplaySettings } from './Roleplay';
@@ -248,7 +248,7 @@ export function SetupView() {
           <div className="card" data-anchor="setup-steps">
             <h2 className="card-title">⏳ Adım sayısı</h2>
             <div className="count-picker" role="radiogroup" aria-label="Adım sayısı">
-              {Array.from({ length: MAX_STEPS }, (_, i) => i + 1).map((n) => (
+              {Array.from({ length: Math.max(QUICK_STEPS, pres.steps.length) }, (_, i) => i + 1).filter((n) => n <= QUICK_STEPS || n === pres.steps.length).map((n) => (
                 <button key={n} role="radio" aria-checked={pres.steps.length === n} className={pres.steps.length === n ? 'is-active' : ''} onClick={() => setStepCount(n)}>
                   {n}
                 </button>

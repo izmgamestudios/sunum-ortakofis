@@ -5,6 +5,7 @@ import { useApp } from '../store';
 import { useSpeech } from '../lib/speech';
 import { useSettings } from '../lib/settings';
 import { deleteRecording, listRecordings, useRecordings, type Recording } from '../lib/recordings';
+import { screenRecSupported, useScreenRec } from '../lib/media';
 import { buildDocx, type DocBlock } from '../lib/docx';
 import { downloadBlob, formatBytes, slugify } from '../lib/io';
 import { fmtDuration } from '../lib/report';
@@ -133,7 +134,7 @@ export function RecordingsSection() {
   if (!recs.length && !pres.transcript.length) return null;
   return (
     <section data-anchor="report-recordings" className="recordings">
-      <h2>🎧 Ses kaydı & döküm</h2>
+      <h2>🎧 Ses, ekran kaydı & döküm</h2>
       <div className="row gap-s wrap no-print">
         {pres.transcript.length > 0 && (
           <button className="btn btn-primary" onClick={() => downloadBlob(transcriptDocx(pres), `${slugify(pres.title)}-dokum.docx`)}>
@@ -142,7 +143,7 @@ export function RecordingsSection() {
         )}
         {recs.length > 1 && (
           <button className="btn" onClick={downloadAll}>
-            ⬇️ Tüm ses kayıtları ({recs.length} · {formatBytes(total)})
+            ⬇️ Tüm kayıtlar ({recs.length} · {formatBytes(total)})
           </button>
         )}
       </div>
@@ -151,14 +152,17 @@ export function RecordingsSection() {
           {recs.map((r) => (
             <li key={r.id} className="rec-item">
               <div className="rec-meta">
-                <b>
-                  {r.stepIndex + 1}. {r.stepTitle}
-                </b>
+                <b>{r.kind === 'screen' ? '🎬 Ekran kaydı' : `${r.stepIndex + 1}. ${r.stepTitle}`}</b>
                 <small className="muted">
                   {new Date(r.startedAt).toLocaleTimeString('tr-TR')} · {fmtDuration(Math.round(r.durationMs / 1000))} · {formatBytes(r.size)}
                 </small>
               </div>
-              {urls[r.id] && <audio controls preload="metadata" src={urls[r.id]} className="no-print" />}
+              {urls[r.id] &&
+                (r.kind === 'screen' ? (
+                  <video controls preload="metadata" src={urls[r.id]} className="no-print rec-video" />
+                ) : (
+                  <audio controls preload="metadata" src={urls[r.id]} className="no-print" />
+                ))}
               <span className="row gap-s no-print">
                 <button className="btn btn-sm" onClick={() => downloadBlob(r.blob, r.name)}>
                   ⬇️ İndir
@@ -171,9 +175,56 @@ export function RecordingsSection() {
           ))}
         </ul>
       ) : (
-        <p className="muted small">Ses kaydı yok — sunum başlarken “Evet, sesimi kaydet” seçilirse her adım ayrı bir ses dosyası olarak burada listelenir.</p>
+        <p className="muted small">Kayıt yok — sunum başlarken “Evet, sesimi kaydet” seçilirse her adım ayrı bir ses dosyası, ⏺ Ekran kaydı ile de video olarak burada listelenir.</p>
       )}
       <p className="muted small">🔒 Ses kayıtları yalnızca bu cihazda saklanır; paylaşım bağlantısına ve .snmtdz dosyasına eklenmez.</p>
     </section>
+  );
+}
+
+/** ⏺ screen recording toggle (live HUD) */
+export function ScreenRecButton() {
+  const { active, startedAt, error, withMic, start, stop, setWithMic } = useScreenRec();
+  const [, tick] = useState(0);
+  const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [active]);
+  useEffect(() => {
+    if (error) alert(error);
+  }, [error]);
+  if (!screenRecSupported) return null;
+  if (active)
+    return (
+      <button className="btn btn-sm screenrec is-on" onClick={stop} title="Ekran kaydını durdur — Rapor’dan indirilir">
+        <span className="listen-dot is-on" /> {fmtDuration(Math.round((Date.now() - (startedAt ?? Date.now())) / 1000))} <span className="hide-sm">Durdur</span>
+      </button>
+    );
+  return (
+    <span className="screenrec-wrap">
+      <button className="btn btn-sm screenrec" onClick={() => setMenu((m) => !m)} aria-expanded={menu} title="Ekran videosu kaydet">
+        ⏺ <span className="hide-sm">Ekran kaydı</span>
+      </button>
+      {menu && (
+        <span className="screenrec-menu" role="dialog" aria-label="Ekran kaydı">
+          <label className="switch small">
+            <input type="checkbox" checked={withMic} onChange={(e) => setWithMic(e.target.checked)} />
+            <span>🎙️ Mikrofonumu da kaydet (parazit temizlemeli)</span>
+          </label>
+          <small className="muted">Açılan pencerede bu sekmeyi, bir pencereyi ya da tüm ekranı seç. Sekme sesini de almak için “Sekme sesini paylaş”ı işaretle.</small>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setMenu(false);
+              void start();
+            }}
+          >
+            ⏺ Kaydı başlat
+          </button>
+        </span>
+      )}
+    </span>
   );
 }

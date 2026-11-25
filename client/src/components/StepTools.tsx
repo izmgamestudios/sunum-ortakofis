@@ -54,7 +54,7 @@ function StepChecklist({ groups, picked, setPicked, max }: { groups: { label: st
         </fieldset>
       ))}
       <p className={`small ${picked.size >= max ? 'warn' : 'muted'}`}>
-        {picked.size} / {max} adım seçili{picked.size >= max ? ' — sınır doldu (bir sunumda en fazla 9 adım)' : ''}
+        {picked.size} adım seçili{picked.size >= max ? ` — teknik üst sınır (${max})` : ''}
       </p>
     </div>
   );
@@ -87,7 +87,7 @@ export function AddTemplateDialog({ template, onClose }: { template: Presentatio
     }
     useApp.getState().setView('setup');
     onClose();
-    if (added < steps.length) alert(`${added} adım eklendi; ${steps.length - added} adım 9 adım sınırı yüzünden eklenmedi.`);
+    if (added < steps.length) alert(`${added} adım eklendi; ${steps.length - added} adım teknik üst sınır (${MAX_STEPS}) yüzünden eklenmedi.`);
   };
 
   return (
@@ -104,9 +104,9 @@ export function AddTemplateDialog({ template, onClose }: { template: Presentatio
         </select>
       </label>
       {room === 0 ? (
-        <p className="warn small">Bu sunum zaten 9 adım. Önce adım sil ya da sunumu ✂️ ayır.</p>
+        <p className="warn small">Bu sunum teknik üst sınırda ({MAX_STEPS} adım). Önce sunumu ✂️ ayır.</p>
       ) : (
-        <StepChecklist groups={[{ label: `Şablonun adımları — sona eklenir (${room} yer var)`, steps: tplSteps }]} picked={picked} setPicked={setPicked} max={room} />
+        <StepChecklist groups={[{ label: `Şablonun adımları — sona eklenir (şu an ${target?.steps.length ?? 0} adım)`, steps: tplSteps }]} picked={picked} setPicked={setPicked} max={room} />
       )}
       <div className="row gap-s wrap">
         <button className="btn btn-primary" onClick={add} disabled={!target || !picked.size}>
@@ -132,7 +132,7 @@ export function MergeDialog({ ids, onClose, onDone }: { ids: string[]; onClose: 
       const list = (await Promise.all(ids.map((id) => loadPresentation(id)))).filter((p): p is Presentation => !!p);
       setSources(list);
       setTitle(list.map((p) => p.title).join(' + '));
-      setPicked(new Set(list.flatMap((p) => p.steps).slice(0, MAX_STEPS).map((s) => s.id)));
+      setPicked(new Set(list.flatMap((p) => p.steps).map((s) => s.id)));
     })();
   }, [ids]);
   const merge = async () => {
@@ -152,7 +152,7 @@ export function MergeDialog({ ids, onClose, onDone }: { ids: string[]; onClose: 
         <>
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Yeni sunumun başlığı" aria-label="Başlık" />
           <StepChecklist groups={sources.map((p) => ({ label: p.title, steps: p.steps }))} picked={picked} setPicked={setPicked} max={MAX_STEPS} />
-          <p className="muted small">Seçilen adımlar bu sırayla yeni bir sunumda toplanır. Giriş ilk sunumdan, kapanış son sunumdan alınır; kaynak sunumlar değişmez.</p>
+          <p className="muted small">Adım sınırı yok: seçilen tüm adımlar (örneğin 8 + 5 = 13) bu sırayla yeni bir sunumda toplanır. Giriş ilk sunumdan, kapanış son sunumdan alınır; kaynak sunumlar değişmez.</p>
           <div className="row gap-s wrap">
             <button className="btn btn-primary" onClick={merge} disabled={!picked.size}>
               🔗 Birleştir ({picked.size} adım)

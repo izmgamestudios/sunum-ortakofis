@@ -13,6 +13,8 @@ export interface Recording {
   startedAt: number;
   durationMs: number;
   blob: Blob;
+  /** audio (per step, microphone) or screen (video) */
+  kind?: 'audio' | 'screen';
 }
 
 const key = (presId: string) => `teknodoz-sunum:rec:${presId}`;

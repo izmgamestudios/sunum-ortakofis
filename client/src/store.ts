@@ -446,7 +446,15 @@ async function doHydrate(): Promise<void> {
   }
   let timer: ReturnType<typeof setTimeout> | undefined;
   let lastPres: Presentation | null = null;
+  let seen: Presentation | null = useApp.getState().pres;
   useApp.subscribe((s) => {
+    // switching presentations within the debounce window must not drop the previous one's last edits
+    if (seen && seen.id !== s.pres.id && seen !== lastPres) {
+      const prev = seen;
+      lastPres = prev;
+      void import('./lib/library').then((m) => m.savePresentation(prev));
+    }
+    seen = s.pres;
     clearTimeout(timer);
     timer = setTimeout(() => {
       idbSet(STORAGE_KEY, { pres: s.pres, view: s.view, live: s.live }).catch((e) => console.warn('Kayıt yazılamadı', e));

@@ -1,7 +1,10 @@
 // client/src/lib/factory.ts
 import type { Presentation, Step, TopicNode } from '../types';
 
-export const MAX_STEPS = 9;
+/** quick step-count picker shows 1…9; presentations can grow beyond that (add, merge, templates) */
+export const QUICK_STEPS = 9;
+/** technical upper bound (abuse protection), not a product limit */
+export const MAX_STEPS = 60;
 export const uid = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 

@@ -10,10 +10,12 @@ export interface Settings {
   liveLayout: 'canvas' | 'classic';
   /** start listening (speech-to-text) when the presentation starts; pause with the timer */
   autoListen: boolean;
+  /** clean up microphone recordings (noise suppression, filters, noise gate) */
+  noiseReduce: boolean;
 }
 
 const KEY = 'teknodoz-sunum:settings';
-const DEFAULTS: Settings = { bell: true, bellWarnSec: 10, volume: 0.6, liveLayout: 'canvas', autoListen: true };
+const DEFAULTS: Settings = { bell: true, bellWarnSec: 10, volume: 0.6, liveLayout: 'canvas', autoListen: true, noiseReduce: true };
 
 function load(): Settings {
   try {
@@ -27,9 +29,9 @@ export const useSettings = create<Settings & { set: (p: Partial<Settings>) => vo
   ...load(),
   set: (p) => {
     set(p);
-    const { bell, bellWarnSec, volume, liveLayout, autoListen } = { ...get(), ...p };
+    const { bell, bellWarnSec, volume, liveLayout, autoListen, noiseReduce } = { ...get(), ...p };
     try {
-      localStorage.setItem(KEY, JSON.stringify({ bell, bellWarnSec, volume, liveLayout, autoListen }));
+      localStorage.setItem(KEY, JSON.stringify({ bell, bellWarnSec, volume, liveLayout, autoListen, noiseReduce }));
     } catch {
       /* private mode */
     }

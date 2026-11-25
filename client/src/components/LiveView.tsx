@@ -13,6 +13,7 @@ import { TombalaLive, TreeLive } from './Topics';
 import { ChatPanel, NotesPanel, RoomPanel } from './Panels';
 import { ListenDot, MicIndicator, TranscriptPanel } from './Transcript';
 import { LiveStage } from './LiveStage';
+import { ScreenRecButton } from './Recordings';
 import { MinuteInput } from './MinuteInput';
 
 export type SideTab = 'flow' | 'speech' | 'notes' | 'chat' | 'room';
@@ -317,6 +318,7 @@ export function LiveView() {
       />
     ) : null;
 
+  const recBtn = <ScreenRecButton />;
   const layoutBtn = (
     <button
       className="btn btn-sm layout-toggle"
@@ -349,6 +351,7 @@ export function LiveView() {
               </span>
               {dots}
               {controls}
+              {recBtn}
               {layoutBtn}
               <div className="overall-progress" aria-hidden>
                 <span style={{ width: `${(doneMs / totalMs) * 100}%` }} />
@@ -375,6 +378,7 @@ export function LiveView() {
         {dots}
         <div className="ctrl-wrap">
           {controls}
+          {recBtn}
           {layoutBtn}
         </div>
         <div className="overall-progress" aria-hidden>

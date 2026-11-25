@@ -59,7 +59,7 @@ function newId(len = 10): string {
 function validPresentation(p: unknown): p is { title?: string; presenter?: string; steps: unknown[] } {
   if (!p || typeof p !== 'object') return false;
   const steps = (p as { steps?: unknown }).steps;
-  return Array.isArray(steps) && steps.length >= 1 && steps.length <= 9;
+  return Array.isArray(steps) && steps.length >= 1 && steps.length <= 60;
 }
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max) : '');
