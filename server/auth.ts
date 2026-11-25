@@ -43,7 +43,8 @@ export interface Auth {
 export function createAuth(secret: string, isProd: boolean): Auth {
   const host = process.env.SMTP_HOST ?? (process.env.SMTP_USER?.endsWith('@gmail.com') ? 'smtp.gmail.com' : '');
   const user = process.env.SMTP_USER ?? '';
-  const pass = process.env.SMTP_PASS ?? '';
+  // Google shows app passwords as 'abcd efgh ijkl mnop' — the spaces are not part of it
+  const pass = (process.env.SMTP_PASS ?? '').replace(/\s+/g, '');
   const from = process.env.MAIL_FROM || (user ? `Teknodoz Sunum <${user}>` : '');
   const port = Number(process.env.SMTP_PORT ?? 465);
   const transporter: Transporter | null = host && user && pass ? nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } }) : null;
