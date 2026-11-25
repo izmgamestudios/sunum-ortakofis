@@ -97,7 +97,10 @@ export interface Step {
   id: string;
   title: string;
   durationSec: number;
+  /** plain text (search, speech matching, reports) — mirrors `html` when rich text is used */
   text: string;
+  /** rich text (sanitized HTML: bold, size, font, colour, alignment, lists, links) */
+  html?: string;
   attachments: Attachment[];
   canvas: CanvasElement[];
   groups: CanvasGroup[];

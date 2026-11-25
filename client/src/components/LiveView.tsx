@@ -12,8 +12,9 @@ import { TombalaLive, TreeLive } from './Topics';
 import { ChatPanel, NotesPanel, RoomPanel } from './Panels';
 import { MicIndicator, TranscriptPanel } from './Transcript';
 import { LiveStage } from './LiveStage';
+import { MinuteInput } from './MinuteInput';
 
-type SideTab = 'flow' | 'speech' | 'notes' | 'chat' | 'room';
+export type SideTab = 'flow' | 'speech' | 'notes' | 'chat' | 'room';
 
 function useNow(intervalMs = 250): number {
   const [now, setNow] = useState(() => Date.now());
@@ -25,10 +26,11 @@ function useNow(intervalMs = 250): number {
 }
 
 /** Tombala / tree, transcript, notes, chat, room — used beside the stage and in the fullscreen drawer. */
-function SidePanel({ stepIndex }: { stepIndex: number }) {
+function SidePanel({ stepIndex, fixedTab }: { stepIndex: number; fixedTab?: SideTab }) {
   const step = useApp((s) => s.pres.steps[stepIndex]);
   const chatCount = useApp((s) => s.pres.chat.length);
-  const [tab, setTab] = useState<SideTab>('flow');
+  const [ownTab, setTab] = useState<SideTab>('flow');
+  const tab = fixedTab ?? ownTab;
   const [seenChat, setSeenChat] = useState(chatCount);
   useEffect(() => {
     if (tab === 'chat') setSeenChat(chatCount);
@@ -36,7 +38,7 @@ function SidePanel({ stepIndex }: { stepIndex: number }) {
   const unread = chatCount - seenChat;
   return (
     <div className="side-panel">
-      <div className="side-tabs" role="tablist">
+      {!fixedTab && <div className="side-tabs" role="tablist">
         {(
           [
             ['flow', step.topicMode === 'tree' ? '🌳' : step.topicMode === 'tombala' ? '🎱' : '🧭', step.topicMode === 'tree' ? 'Ağaç' : step.topicMode === 'tombala' ? 'Tombala' : 'Akış'],
@@ -54,7 +56,7 @@ function SidePanel({ stepIndex }: { stepIndex: number }) {
             <span className="side-tab-label">{label}</span>
           </button>
         ))}
-      </div>
+      </div>}
       {tab === 'flow' &&
         (step.topicMode === 'tombala' ? (
           <TombalaLive index={stepIndex} />
@@ -74,9 +76,10 @@ function SidePanel({ stepIndex }: { stepIndex: number }) {
 export function LiveView() {
   const pres = useApp((s) => s.pres);
   const live = useApp((s) => s.live);
-  const { start, next, prev, togglePause, finish, extendBreak, rerollRoleplay, setView, goToStep } = useApp.getState();
+  const { start, next, prev, togglePause, finish, extendBreak, rerollRoleplay, setView, goToStep, updateStep } = useApp.getState();
   const floating = useRoom((s) => s.floating);
-  const { bell: bellOn, bellWarnSec, volume, set: setSettings } = useSettings();
+  const { bell: bellOn, bellWarnSec, volume, liveLayout, set: setSettings } = useSettings();
+  const canvasMode = liveLayout === 'canvas';
   const now = useNow();
   const lastSec = useRef<number | null>(null);
 
@@ -125,6 +128,15 @@ export function LiveView() {
       window.removeEventListener('keydown', unlock);
     };
   }, []);
+
+  // keep the current step chip visible in the scrollable step strip
+  useEffect(() => {
+    document.querySelectorAll<HTMLElement>('.step-dots').forEach((list) => {
+      const cur = list.querySelector<HTMLElement>('.step-dot.is-current');
+      if (!cur) return;
+      list.scrollTo({ left: cur.offsetLeft - list.clientWidth / 2 + cur.clientWidth / 2, behavior: 'smooth' });
+    });
+  }, [live.stepIndex, live.phase, liveLayout]);
 
   // keyboard shortcuts
   useEffect(() => {
@@ -207,6 +219,9 @@ export function LiveView() {
         </span>
         <MicIndicator />
       </div>
+      {live.phase === 'step' && (
+        <MinuteInput sec={step.durationSec} onChange={(durationSec) => updateStep(live.stepIndex, { durationSec })} label="Bu adımın süresi" steppers />
+      )}
     </div>
   );
 
@@ -219,9 +234,10 @@ export function LiveView() {
             onClick={() => goToStep(i)}
             disabled={!paused || (i === live.stepIndex && live.phase === 'step')}
             title={`${i + 1}. ${s.title} — ${minLabel(s.durationSec)}${paused ? ' · gitmek için tıkla' : ' · gezinmek için önce duraklat'}`}
-            aria-label={`${i + 1}. adım, ${minLabel(s.durationSec)}`}
+            aria-label={`${i + 1}. adım: ${s.title}, ${minLabel(s.durationSec)}`}
           >
             <span className="dot-num">{i + 1}</span>
+            <small className="dot-name">{s.title}</small>
             <small className="dot-min">{minLabel(s.durationSec)}</small>
           </button>
         </li>
@@ -229,12 +245,80 @@ export function LiveView() {
     </ol>
   );
 
+  const breakOverlay =
+    live.phase === 'break' && live.breakActivity ? (
+      <BreakScreen
+        activity={live.breakActivity}
+        elapsedMs={elapsed}
+        plannedSec={breakTotalSec}
+        nextTitle={pres.steps[live.stepIndex + 1]?.title ?? ''}
+        nextMinutes={(pres.steps[live.stepIndex + 1]?.durationSec ?? 60) / 60}
+        cue={pres.steps[live.stepIndex + 1]?.cue}
+        onContinue={next}
+        onExtend={() => extendBreak(15)}
+      />
+    ) : null;
+
+  const layoutBtn = (
+    <button
+      className="btn btn-sm layout-toggle"
+      onClick={() => setSettings({ liveLayout: canvasMode ? 'classic' : 'canvas' })}
+      title={canvasMode ? 'Klasik görünüm: tuval + yan panel' : 'Tek tuval: her şey tuvalin üzerinde'}
+    >
+      {canvasMode ? '▦' : '🎨'} <span className="hide-sm">{canvasMode ? 'Klasik' : 'Tek tuval'}</span>
+    </button>
+  );
+
+  if (canvasMode) {
+    return (
+      <main className={`live live--canvas ${overtime ? 'is-overtime' : ''} ${warning ? 'is-warning' : ''}`}>
+        <div className="floating-reactions" aria-hidden>
+          {floating.map((f) => (
+            <span key={f.id} style={{ left: `${f.x}%` }}>
+              {f.emoji}
+            </span>
+          ))}
+        </div>
+        <LiveStage
+          canvasMode
+          stepIndex={live.stepIndex}
+          overlay={breakOverlay}
+          hud={
+            <div className="hud hud--canvas">
+              {timer(34)}
+              <span className="hud-title truncate" title={live.phase === 'break' ? 'Mola' : step.title}>
+                <span className="step-num">{live.phase === 'break' ? '☕' : live.stepIndex + 1}</span> {live.phase === 'break' ? 'Mola' : step.title}
+              </span>
+              {dots}
+              {controls}
+              {layoutBtn}
+              <div className="overall-progress" aria-hidden>
+                <span style={{ width: `${(doneMs / totalMs) * 100}%` }} />
+              </div>
+            </div>
+          }
+          sidePanel={<SidePanel stepIndex={live.stepIndex} />}
+          panelFor={(t) => <SidePanel stepIndex={live.stepIndex} fixedTab={t} />}
+          roleplay={live.currentRoleplay && live.phase === 'step' ? <RoleplayCard rp={live.currentRoleplay} onReroll={rerollRoleplay} compact /> : null}
+        />
+        {paused && live.phase === 'step' && (
+          <p className="paused-hint paused-hint--float" role="status">
+            ⏸ Duraklatıldı — üstteki adım adlarına dokunarak gezinebilirsin. Devam: ▶ ya da Boşluk.
+          </p>
+        )}
+      </main>
+    );
+  }
+
   return (
     <main className={`live ${overtime ? 'is-overtime' : ''} ${warning ? 'is-warning' : ''}`}>
       <div className="live-top">
         {timer(40)}
         {dots}
-        {controls}
+        <div className="ctrl-wrap">
+          {controls}
+          {layoutBtn}
+        </div>
         <div className="overall-progress" aria-hidden>
           <span style={{ width: `${(doneMs / totalMs) * 100}%` }} />
         </div>
@@ -265,20 +349,7 @@ export function LiveView() {
             {/* no key: the stage must survive step changes, otherwise fullscreen would exit */}
             <LiveStage
               stepIndex={live.stepIndex}
-              overlay={
-                live.phase === 'break' && live.breakActivity ? (
-                  <BreakScreen
-                    activity={live.breakActivity}
-                    elapsedMs={elapsed}
-                    plannedSec={breakTotalSec}
-                    nextTitle={pres.steps[live.stepIndex + 1]?.title ?? ''}
-                    nextMinutes={(pres.steps[live.stepIndex + 1]?.durationSec ?? 60) / 60}
-                    cue={pres.steps[live.stepIndex + 1]?.cue}
-                    onContinue={next}
-                    onExtend={() => extendBreak(15)}
-                  />
-                ) : null
-              }
+              overlay={breakOverlay}
               hud={
                 <div className="hud">
                   {timer(28)}

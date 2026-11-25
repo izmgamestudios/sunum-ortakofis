@@ -1,5 +1,7 @@
 // client/src/components/SetupView.tsx
 import { useState } from 'react';
+import { MinuteInput } from './MinuteInput';
+import { RichText } from './RichText';
 import { useApp } from '../store';
 import type { BreakActivity, BreakConfig, Step, TopicMode } from '../types';
 import { MAX_STEPS } from '../lib/factory';
@@ -117,18 +119,7 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
       <div className="step-editor-head">
         <span className="step-num">{index + 1}</span>
         <input className="input input--title" value={step.title} onChange={(e) => patch({ title: e.target.value })} aria-label="Adım başlığı" />
-        <label className="duration-input" title="Süre (dakika)">
-          <input
-            type="number"
-            min={0.5}
-            max={60}
-            step={0.5}
-            value={step.durationSec / 60}
-            onChange={(e) => patch({ durationSec: Math.max(30, Math.min(3600, Math.round(Number(e.target.value) * 60) || 60)) })}
-            aria-label="Süre (dakika)"
-          />
-          <span>dk</span>
-        </label>
+        <MinuteInput sec={step.durationSec} onChange={(durationSec) => patch({ durationSec })} label="Süre (dakika)" />
       </div>
       <div className="subtabs" role="tablist">
         {(
@@ -146,13 +137,7 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
       </div>
       {tab === 'text' && (
         <div className="stack">
-          <textarea
-            className="input textarea"
-            rows={8}
-            value={step.text}
-            placeholder="Bu adımda anlatacakların, ana mesaj, konuşma notları…"
-            onChange={(e) => patch({ text: e.target.value })}
-          />
+          <RichText key={step.id} html={step.html} text={step.text} onChange={(html, text) => patch({ html, text })} placeholder="Bu adımda anlatacakların, ana mesaj, konuşma notları…" />
           {index > 0 && (
             <label className="stack">
               <span className="small muted">🫁 Geçiş göndermesi — bu adımdan önceki molada ekranda görünür (nefes / esneme / su sırasında düşündürecek bir cümle)</span>
@@ -230,6 +215,7 @@ export function SetupView() {
   const pres = useApp((s) => s.pres);
   const live = useApp((s) => s.live);
   const updatePres = useApp((s) => s.updatePres);
+  const updateStep = useApp((s) => s.updateStep);
   const setStepCount = useApp((s) => s.setStepCount);
   const resetDurations = useApp((s) => s.resetDurations);
   const start = useApp((s) => s.start);
@@ -268,15 +254,15 @@ export function SetupView() {
             </div>
             <ol className="timeline">
               {pres.steps.map((s, i) => (
-                <li key={s.id}>
+                <li key={s.id} className="timeline-item">
                   <button className={`timeline-row ${i === idx ? 'is-active' : ''}`} onClick={() => setActive(i)}>
                     <span className="timeline-num">{i + 1}</span>
                     <span className="timeline-title truncate">{s.title}</span>
                     <span className="timeline-bar">
                       <span style={{ width: `${(s.durationSec / maxDur) * 100}%` }} />
                     </span>
-                    <span className="timeline-min">{fmtDuration(s.durationSec)}</span>
                   </button>
+                  <MinuteInput sec={s.durationSec} onChange={(durationSec) => updateStep(i, { durationSec })} label={`${i + 1}. adım süresi (dakika)`} />
                 </li>
               ))}
             </ol>

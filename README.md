@@ -89,3 +89,7 @@ cd sunum-ortakofis && npm install && npm run dev
 - LinkedIn: <https://www.linkedin.com/in/huseyin-bayer-izmgamestudios/>
 - E-posta: <izmgamestudios@gmail.com>
 - Telefon / WhatsApp: 0541 770 92 05 · <https://wa.me/905417709205>
+
+## Örnek sunum
+
+`examples/gamfed-fikir-gelistirme-ve-deger-onerisi.snmtdz` — GamFed Türkiye için “Fikir Geliştirme ve Değer Önerisi” (Hüseyin Bayer). Sunumlarım → İçe aktar ile aç.

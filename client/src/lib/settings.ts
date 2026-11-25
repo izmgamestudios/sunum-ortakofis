@@ -6,10 +6,12 @@ export interface Settings {
   /** first warning chime N seconds before the step ends */
   bellWarnSec: 10 | 30 | 60;
   volume: number;
+  /** canvas = everything on one canvas (HUD, panels as overlays); classic = canvas + sidebar */
+  liveLayout: 'canvas' | 'classic';
 }
 
 const KEY = 'teknodoz-sunum:settings';
-const DEFAULTS: Settings = { bell: true, bellWarnSec: 10, volume: 0.6 };
+const DEFAULTS: Settings = { bell: true, bellWarnSec: 10, volume: 0.6, liveLayout: 'canvas' };
 
 function load(): Settings {
   try {
@@ -23,9 +25,9 @@ export const useSettings = create<Settings & { set: (p: Partial<Settings>) => vo
   ...load(),
   set: (p) => {
     set(p);
-    const { bell, bellWarnSec, volume } = { ...get(), ...p };
+    const { bell, bellWarnSec, volume, liveLayout } = { ...get(), ...p };
     try {
-      localStorage.setItem(KEY, JSON.stringify({ bell, bellWarnSec, volume }));
+      localStorage.setItem(KEY, JSON.stringify({ bell, bellWarnSec, volume, liveLayout }));
     } catch {
       /* private mode */
     }

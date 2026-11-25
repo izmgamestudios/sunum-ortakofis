@@ -1,4 +1,5 @@
 // client/src/components/SharedEntry.tsx — landing for /?s=ID: password gate, viewer page or editor import
+import { RichText } from './RichText';
 import { useEffect, useMemo, useState } from 'react';
 import { hydrate } from '../store';
 import type { Presentation } from '../types';
@@ -107,7 +108,7 @@ function SharedViewer({ pres, meta, onRefresh }: { pres: Presentation; meta: Sha
                 <span className="step-num">{i + 1}</span> {step.title}
               </h2>
               {step.canvas.length > 0 && <ReadOnlyBoard step={step} />}
-              {step.text && <p className="ro-text">{step.text}</p>}
+              {(step.html || step.text) && <RichText readOnly html={step.html} text={step.text} onChange={() => undefined} className="ro-text" />}
             </section>
             {visual.length > 0 && (
               <section className="card">

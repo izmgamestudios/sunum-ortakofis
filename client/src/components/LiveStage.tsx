@@ -11,6 +11,8 @@ import { MediaPanel } from './Media';
 import { APP_EVENTS } from '../lib/nav';
 import { uid } from '../lib/factory';
 import { PixelWorld } from './PixelWorld';
+import { RichText } from './RichText';
+import type { SideTab } from './LiveView';
 
 type StageTab = 'canvas' | 'slides' | 'wall' | 'text' | 'pixels';
 
@@ -22,12 +24,25 @@ interface Props {
   sidePanel: ReactNode;
   /** replaces the tab content (e.g. the break screen) while keeping fullscreen + HUD */
   overlay?: ReactNode;
+  /** one-canvas layout: HUD always on top, everything else opens as panels over the canvas */
+  canvasMode?: boolean;
+  /** side-panel content for a single tab (canvas mode dock) */
+  panelFor?: (tab: SideTab) => ReactNode;
+  /** roleplay scenario card (canvas mode dock) */
+  roleplay?: ReactNode;
 }
 
-export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
+type DockId = 'slides' | 'wall' | 'text' | 'pixels' | 'roleplay' | SideTab;
+const WIDE: DockId[] = ['slides', 'wall', 'text', 'pixels'];
+
+export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = false, panelFor, roleplay }: Props) {
   const step = useApp((s) => s.pres.steps[stepIndex]);
   const updateStep = useApp((s) => s.updateStep);
   const [tab, setTab] = useState<StageTab>('canvas');
+  const [panel, setPanel] = useState<DockId | null>(null);
+  const flowLabel = step.topicMode === 'tree' ? ['🌳', 'Ağaç'] : step.topicMode === 'tombala' ? ['🎱', 'Tombala'] : ['🧭', 'Akış'];
+  // canvas mode: the "tabs" are panels over the canvas
+  const showPanel = (id: DockId) => setPanel((p) => (p === id ? null : id));
   const [fs, setFs] = useState(false);
   const fsRef = useRef(false);
   fsRef.current = fs;
@@ -78,19 +93,19 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
     const newest = audience[0];
     if (!newest || newest.id === lastAudienceId.current) return;
     lastAudienceId.current = newest.id;
-    if (tab === 'wall') return;
+    if (tab === 'wall' || panel === 'wall') return;
     setPeek(newest);
     const t = setTimeout(() => setPeek((p) => (p?.id === newest.id ? null : p)), 7000);
     return () => clearTimeout(t);
-  }, [audience, tab]);
+  }, [audience, tab, panel]);
 
   useEffect(() => {
     if (tab === 'pixels' && step.widget !== 'pixels') setTab('canvas');
   }, [tab, step.widget]);
 
   useEffect(() => {
-    if (tab === 'wall') setSeen(new Set(items.map((i) => i.id)));
-  }, [tab, items]);
+    if (tab === 'wall' || panel === 'wall') setSeen(new Set(items.map((i) => i.id)));
+  }, [tab, panel, items]);
 
   /* ---------- fullscreen (API where available, CSS overlay fallback e.g. iOS) ---------- */
   const enterFs = async () => {
@@ -136,6 +151,135 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
       {fs ? '🗗' : '⛶'} <span className="hide-sm">{fs ? 'Küçült' : 'Tam ekran'}</span>
     </button>
   );
+
+  if (canvasMode) {
+    const dock: [DockId, string, string, number?][] = [
+      ['slides', '🖼️', `Slayt${visualCount ? ` (${visualCount})` : ''}`],
+      ['wall', '📌', 'Duvar', unread],
+      ['text', '✍️', 'Metin'],
+      ...(step.widget === 'pixels' ? ([['pixels', '🌍', 'Piksel']] as [DockId, string, string][]) : []),
+      ...(roleplay ? ([['roleplay', '🎭', 'Senaryo']] as [DockId, string, string][]) : []),
+      ['flow', flowLabel[0], flowLabel[1]],
+      ['speech', '🎙️', 'Döküm'],
+      ['notes', '📝', 'Not'],
+      ['chat', '💬', 'Sohbet'],
+      ['room', '📡', 'Oda'],
+    ];
+    const current = dock.find((d) => d[0] === panel);
+    return (
+      <div ref={stageRef} className={`stage is-canvas ${fs ? 'is-fs' : ''}`}>
+        <div className="stage-hud">
+          {hud}
+          {fsButton}
+        </div>
+        <div className="stage-body">
+          <div className="stage-main">
+            {overlay ?? (
+              <div className="stage-canvas">
+                <Whiteboard
+                  key={step.id}
+                  view={step.view}
+                  onViewChange={(v) => updateStep(stepIndex, { view: v })}
+                  elements={step.canvas}
+                  groups={step.groups}
+                  attachments={step.attachments}
+                  onChange={(canvas, groups) => updateStep(stepIndex, { canvas, groups })}
+                  onAddAttachments={(atts) => updateStep(stepIndex, (s) => ({ attachments: [...s.attachments, ...atts] }))}
+                  onOpenMedia={(id) => {
+                    setFocusId(id);
+                    setPanel('slides');
+                  }}
+                  title={`adim-${stepIndex + 1}`}
+                  compact
+                  fit
+                />
+                {peek && panel !== 'wall' && (
+                  <button className="peek-sticky" style={{ background: WALL_META[peek.kind].color }} onClick={() => setPanel('wall')} title="Duvarda aç">
+                    <small>
+                      {WALL_META[peek.kind].emoji} {peek.author}
+                    </small>
+                    <span>{peek.text}</span>
+                  </button>
+                )}
+              </div>
+            )}
+            {!overlay && (
+              <nav className="canvas-dock" aria-label="Sunum panelleri">
+                {dock.map(([id, icon, label, badge], k) => (
+                  <button
+                    key={id}
+                    className={`dock-btn ${panel === id ? 'is-active' : ''} ${k === 3 + (step.widget === 'pixels' ? 1 : 0) + (roleplay ? 1 : 0) ? 'dock-sep' : ''}`}
+                    onClick={() => showPanel(id)}
+                    aria-pressed={panel === id}
+                    title={label}
+                  >
+                    <span aria-hidden>{icon}</span>
+                    <small>{label}</small>
+                    {!!badge && panel !== id && <span className="dock-badge">{badge > 9 ? '9+' : badge}</span>}
+                  </button>
+                ))}
+              </nav>
+            )}
+            {!overlay && current && (
+              <section className={`float-panel ${WIDE.includes(current[0]) ? 'float-panel--wide' : ''}`} role="dialog" aria-label={current[2]} onKeyDown={(e) => e.key === 'Escape' && setPanel(null)}>
+                <header className="float-head">
+                  <b>
+                    {current[1]} {current[2]}
+                  </b>
+                  <button className="icon-btn icon-btn--ghost" onClick={() => setPanel(null)} aria-label="Paneli kapat" title="Kapat (Esc)">
+                    ✕
+                  </button>
+                </header>
+                <div className="float-body">
+                  {panel === 'slides' && (
+                    <>
+                      <input ref={fileRef} type="file" hidden multiple accept="image/*,application/pdf,video/*,audio/*" onChange={(e) => { pickFiles(e.target.files); e.target.value = ''; }} />
+                      <SlideViewer
+                        attachments={step.attachments}
+                        focusId={focusId}
+                        onPinExisting={(a) => addToCanvas([a], false).then(() => setPanel(null))}
+                        onPinNew={(a) => addToCanvas([a], true).then(() => setPanel(null))}
+                        onAddClick={() => fileRef.current?.click()}
+                      />
+                    </>
+                  )}
+                  {panel === 'wall' && (
+                    <StickyWall
+                      done={done}
+                      onToggleDone={(id) =>
+                        setDone((d) => {
+                          const n = new Set(d);
+                          n.has(id) ? n.delete(id) : n.add(id);
+                          return n;
+                        })
+                      }
+                      onPin={(it) => {
+                        pinSticky(it);
+                        setTab('canvas');
+                      }}
+                    />
+                  )}
+                  {panel === 'text' && (
+                    <RichText key={step.id} html={step.html} text={step.text} onChange={(html, text) => updateStep(stepIndex, { html, text })} placeholder="Bu adım için metin yok — buraya canlı yazabilirsin." />
+                  )}
+                  {panel === 'pixels' && (
+                    <PixelWorld
+                      images={step.attachments.filter((a) => a.kind === 'image' && (a.dataUrl || a.url)).map((a) => ({ name: a.name, src: (a.dataUrl ?? a.url)! }))}
+                      onPin={(dataUrl, name) =>
+                        addToCanvas([{ id: uid(), kind: 'image', name, mime: 'image/png', size: Math.round((dataUrl.length * 3) / 4), dataUrl }], true).then(() => setPanel(null))
+                      }
+                    />
+                  )}
+                  {panel === 'roleplay' && roleplay}
+                  {panel && !WIDE.includes(panel) && panel !== 'roleplay' && panelFor?.(panel as SideTab)}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={stageRef} className={`stage ${fs ? 'is-fs' : ''} ${drawer ? 'drawer-open' : ''}`}>
@@ -243,12 +387,7 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
             </div>
           )}
           {!overlay && tab === 'text' && (
-            <textarea
-              className="input textarea live-text"
-              value={step.text}
-              placeholder="Bu adım için metin yok — buraya canlı yazabilirsin."
-              onChange={(e) => updateStep(stepIndex, { text: e.target.value })}
-            />
+            <RichText key={step.id} html={step.html} text={step.text} onChange={(html, text) => updateStep(stepIndex, { html, text })} placeholder="Bu adım için metin yok — buraya canlı yazabilirsin." className="live-text" />
           )}
         </div>
         {fs && (
