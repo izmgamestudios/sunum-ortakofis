@@ -12,6 +12,9 @@ const CY = 520;
 
 const alpha = (hex: string, a: number) => `${hex}${Math.round(a * 255).toString(16).padStart(2, '0')}`;
 const col = (i: number) => PALETTE[i % PALETTE.length];
+const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+/** 10 → "¹⁰", -35 → "⁻³⁵" */
+export const sup = (n: number) => String(n).split('').map((c) => SUP[c] ?? c).join('');
 
 function luminance(hex: string): number {
   const n = parseInt(hex.slice(1, 7), 16);
@@ -513,11 +516,11 @@ const LAYOUTS: { [K in Layout['kind']]: (b: Builder, fw: Framework, l: Extract<L
     b.line(vx, sy, vx, sy + ss, blue, 3);
     b.line(vx, hy, sx + ss, hy, blue, 3);
     b.text('🎁 Ürün &\nHizmetler', (sx + vx) / 2, sy + 60, 22, INK, { maxW: vx - sx - 20 });
-    b.text('📈 Kazanç Yaratıcılar', (vx + sx + ss) / 2, sy + 50, 22, INK, { maxW: sx + ss - vx - 30 });
+    b.text('📈 Kazanç Sağlayıcılar', (vx + sx + ss) / 2, sy + 50, 22, INK, { maxW: sx + ss - vx - 30 });
     b.text('💊 Acı Gidericiler', (vx + sx + ss) / 2, hy + 50, 22, INK, { maxW: sx + ss - vx - 30 });
-    b.sticky(sx + 20, sy + 150, vx - sx - 40, 120, 3);
-    b.sticky(vx + 30, sy + 110, sx + ss - vx - 60, 110, 2);
-    b.sticky(vx + 30, hy + 110, sx + ss - vx - 60, 110, 1);
+    b.sticky(sx + 16, sy + 120, vx - sx - 32, 300, 3);
+    b.sticky(vx + 24, sy + 85, sx + ss - vx - 48, 150, 2);
+    b.sticky(vx + 24, hy + 85, sx + ss - vx - 48, 150, 1);
     b.text('Değer Haritası', sx + ss / 2, sy + ss + 40, 28, blue);
     // customer profile — circle
     const cx = 1220, cy = hy, r = 250, jx = cx + r * 0.35, jh = Math.sqrt(r * r - (r * 0.35) ** 2);
@@ -527,15 +530,101 @@ const LAYOUTS: { [K in Layout['kind']]: (b: Builder, fw: Framework, l: Extract<L
     b.text('😊 Kazançlar', (cx - r * 0.55 + jx) / 2, cy - 150, 22, INK, { maxW: 260 });
     b.text('😣 Acılar', (cx - r * 0.55 + jx) / 2, cy + 60, 22, INK, { maxW: 260 });
     b.text('🛠️\nMüşteri\nİşleri', (jx + cx + r) / 2, cy - 70, 20, INK, { maxW: cx + r - jx - 16 });
-    b.sticky(cx - 170, cy - 110, 230, 90, 2);
-    b.sticky(cx - 170, cy + 100, 230, 90, 1);
-    b.sticky(jx + 14, cy - 10, cx + r - jx - 44, 110, 0);
+    b.sticky(cx - 190, cy - 125, 270, 105, 2);
+    b.sticky(cx - 190, cy + 90, 270, 105, 1);
+    b.sticky(jx + 10, cy - 20, cx + r - jx - 36, 150, 0);
     b.text('Müşteri Profili', cx, sy + ss + 40, 28, pink);
     // fit
     b.line(640, cy - 22, 930, cy - 22, '#94a3b8', 4, true);
     b.line(930, cy + 22, 640, cy + 22, '#94a3b8', 4, true);
     b.text('UYUM', 785, cy - 64, 24, MUTED);
-    b.para('Acı gidericiler ↔ acılar · kazanç yaratıcılar ↔ kazançlar · ürünler ↔ müşteri işleri', 100, 800, 18, 1400);
+    b.para('Acı gidericiler ↔ acılar · kazanç sağlayıcılar ↔ kazançlar · ürünler ↔ müşteri işleri', 100, 800, 18, 1400);
+  },
+
+  scale(b, _fw, l) {
+    const x0 = 120, x1 = 1480, y = 500;
+    const px = (e: number) => x0 + ((e - l.from) / (l.to - l.from)) * (x1 - x0);
+    // micro → macro band
+    const micro = '#3b8bf7', human = '#22c55e', macro = '#a93bf5';
+    b.rect(x0, y - 10, px(0) - x0, 20, micro, alpha(micro, 0.35), 2);
+    b.rect(px(0), y - 10, x1 - px(0), 20, macro, alpha(macro, 0.35), 2);
+    for (let e = l.from; e <= l.to; e += 5) {
+      const x = px(e);
+      b.line(x, y + 14, x, y + 28, '#94a3b8', 2);
+      b.text(`10${sup(e)}`, x, y + 46, 15, MUTED);
+    }
+    l.marks.forEach(([e, label, note], i) => {
+      const x = px(e);
+      const up = i % 2 === 0;
+      const c = e < 0 ? micro : e === 0 ? human : macro;
+      const r = e === 0 ? 22 : 10 + (i / l.marks.length) * 10;
+      const ly = up ? y - 110 - (i % 4 === 0 ? 0 : 70) : y + 120 + (i % 4 === 1 ? 0 : 70);
+      b.line(x, y + (up ? -12 : 12), x, up ? ly + 44 : ly - 42, alpha(c, 0.6), 2);
+      b.circle(x, y, r, c, e === 0 ? alpha(c, 0.9) : '#ffffff', 3);
+      b.text(`10${sup(e)} m`, x, ly - 22, 20, c);
+      b.text(label, x, ly + 6, 19, INK, { maxW: 200 });
+      if (note) b.text(note, x, ly + 30, 14, MUTED, { maxW: 210 });
+    });
+    b.text('◀ MİKRO EVREN', x0 + 110, 800, 22, micro);
+    b.text('İNSAN · 10⁰ m', px(0), 800, 22, human);
+    b.text('MAKRO EVREN ▶', x1 - 110, 800, 22, macro);
+    b.text('Her basamak 10 kat: Planck’tan evrenin ufkuna ~62 kat büyüme. Sen, ölçeklerin tam ortasındasın.', CX, 848, 17, MUTED, { maxW: 1300 });
+  },
+
+  ladder(b, fw) {
+    const n = fw.parts.length, top = 150, bottom = 860, gap = 6;
+    const rowH = (bottom - top - gap * (n - 1)) / n;
+    const hue = (i: number) => {
+      // dense red → orange → green → blue → violet → gold-white
+      const stops = ['#7f1d1d', '#b45309', '#ca8a04', '#16a34a', '#0d9488', '#0284c7', '#2563eb', '#4f46e5', '#7c3aed', '#a21caf', '#db2777', '#f59e0b'];
+      return stops[i % stops.length];
+    };
+    fw.parts.forEach((p, i) => {
+      const y = bottom - (i + 1) * rowH - i * gap;
+      const inset = 60 + (i * 140) / (n - 1);
+      const x = 70 + inset, w = 1460 - inset * 2;
+      const c = hue(i);
+      const [title, ...rest] = p.split('\n');
+      b.rect(x, y, w, rowH, c, alpha(c, 0.14 + i * 0.012), 2);
+      b.circle(x + 30, y + rowH / 2, rowH / 2 - 6, c, c, 2);
+      b.text(String(i + 1), x + 30, y + rowH / 2, 20, '#ffffff');
+      b.text(title, x + 66, y + rowH / 2, 20, c, { left: true });
+      const desc = rest.join(' ');
+      const f = b.fit(desc, w - 260, 16, 11);
+      b.text(desc, x + 210, y + rowH / 2, f, INK, { left: true });
+    });
+    b.text('▲ frekans · farkındalık', 1490, 170, 15, MUTED, { maxW: 150 });
+  },
+
+  induction(b, fw, l) {
+    const [me, like, us] = fw.parts;
+    const cy = 420;
+    const blue = '#3b8bf7', teal = '#14b8a6', violet = '#a93bf5';
+    // BEN
+    b.circle(250, cy, 95, blue, alpha(blue, 0.25), 4);
+    b.circle(250, cy, 14, blue, blue, 2);
+    b.label(me, 250, cy + 150, 28, 300, blue);
+    // BENZERLİKLER
+    [[-60, -40], [55, -55], [-30, 60], [65, 45], [0, 0]].forEach(([dx, dy], i) => b.circle(800 + dx, cy + dy, 70, teal, alpha(teal, 0.12 + i * 0.03), 3));
+    b.label(like, 800, cy + 170, 28, 320, teal);
+    // BİZ
+    b.circle(1340, cy, 170, violet, alpha(violet, 0.14), 4);
+    for (let k = 0; k < 26; k++) {
+      const a = k * 2.39996, rr = 22 * Math.sqrt(k + 1);
+      b.circle(1340 + Math.cos(a) * rr, cy + Math.sin(a) * rr, 9, violet, k === 0 ? blue : alpha(violet, 0.6), 1);
+    }
+    b.label(us, 1340, cy + 220, 28, 340, violet);
+    b.line(370, cy, 690, cy, '#94a3b8', 5, true);
+    b.line(910, cy, 1150, cy, '#94a3b8', 5, true);
+    b.text('tümevarım: parçadan bütüne', 800, 190, 20, MUTED);
+    // examples
+    const w = 470, gap = 25;
+    l.examples.forEach(([t, d], i) => {
+      const x = 70 + i * (w + gap);
+      b.rect(x, 700, w, 150, '#cbd5e1', '#f8fafc', 2);
+      b.text(t, x + 20, 728, 22, INK, { left: true });
+      b.para(d, x + 20, 750, 16, w - 40, MUTED);
+    });
   },
 
   flow(b) {

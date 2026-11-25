@@ -31,7 +31,7 @@ Kitle aynı ağdaysa telefondan `http://<bilgisayar-ip>:3001/?join=KOD` (veya QR
 | Şablonlar | 10 kategoride 20 hazır sunum: girişimcilik, ekonomi, eğitim, sağlık, bilim, teknoloji, finans, siyaset & kamu, inanç & değerler, kişisel gelişim. Arama, kategori filtresi, rastgele öneriler |
 | Tuval | Tıkla-yaz, not kağıdı, seç/taşı/döndür/boyutlandır tutamaçları, katman paneli (sırala/gizle/kilitle), çoğalt, PNG |
 | Slayt & PDF | Görsel slayt gösterisi, sayfa sayfa PDF okuyucu (pdf.js), yakınlaştırma, “Tuvale ekle” |
-| Çerçeveler | 60 düşünme/koçluk modeli (Ikigai, SWOT, OKR, Eisenhower…) + iş kanvasları (Business Model Canvas, Lean Canvas, Değer Önerisi Kanvası) — tuvale düzenlenebilir infografik ya da şablon |
+| Çerçeveler | 60 düşünme/koçluk modeli (Ikigai, SWOT, OKR, Eisenhower…) + iş ve bilinç kanvasları (Business Model Canvas, Lean Canvas, Değer Önerisi, Evrenin Ölçekleri, 12 Boyut, Benden Bize) + 🌍 “1 piksel = 1 insan” aracı — tuvale düzenlenebilir infografik ya da şablon |
 | Tam ekran | HUD (kum saati, sayaç, kontroller), açılır yan panel, duraklatınca adımlar arası gezinme |
 | Zil | Son 10/30/60 sn uyarısı, son 5 sn tık, bitiş çanı (Web Audio, dosyasız) |
 | Not duvarı | İzleyici sohbeti, soruları, kelime önerileri ve notlar yapışkan not olarak; tuvale yapıştır |

@@ -186,6 +186,7 @@ function ResourcesMega({ onPick }: { onPick: () => void }) {
     { icon: '⌨️', title: 'Klavye kısayolları', desc: 'Ctrl+K arama, G+harf gezinme, tuval tuşları', run: () => setShortcutsOpen(true) },
     { icon: '🩺', title: 'Sorun giderme', desc: 'Zil, mikrofon, PDF, bağlantı, 502…', run: () => openHelp('troubleshoot') },
     { icon: '🛟', title: 'Destek', desc: 'Sistem bilgisi, geri bildirim', run: () => openHelp('support') },
+    { icon: '🌍', title: '1 piksel = 1 insan', desc: 'Dünya nüfusu kadar piksel: ekran ölçüsü, adım adım açılan resim', run: () => setView('pixels') },
     { icon: '🙏', title: 'Hakkında & Credits', desc: 'Geliştirici, iletişim, açık kaynak (GitHub)', run: () => setView('credits') },
   ];
   return (
@@ -328,7 +329,7 @@ function SiteHeader() {
           {navBtn('live', 'Sunum')}
           {navBtn('report', 'Rapor')}
           {megaBtn('templates', 'Şablonlar', ['templates'])}
-          {megaBtn('resources', 'Kaynaklar', ['faq', 'credits'])}
+          {megaBtn('resources', 'Kaynaklar', ['faq', 'credits', 'pixels'])}
           {mega && (
             <div className="mega" role="region" aria-label={mega === 'templates' ? 'Şablonlar menüsü' : 'Kaynaklar menüsü'}>
               {mega === 'templates' ? <TemplatesMega onPick={() => setMega(null)} /> : <ResourcesMega onPick={() => setMega(null)} />}
@@ -491,6 +492,7 @@ function SidebarNav() {
         {item('⌨️ Kısayollar', false, () => useApp.getState().setShortcutsOpen(true))}
         {item('🩺 Sorun giderme', view === 'faq' && helpTab === 'troubleshoot', () => openHelp('troubleshoot'))}
         {item('🛟 Destek', view === 'faq' && helpTab === 'support', () => openHelp('support'))}
+        {item('🌍 1 piksel = 1 insan', view === 'pixels', () => setView('pixels'))}
         {item('🙏 Hakkında & Credits', view === 'credits', () => setView('credits'))}
       </NavGroup>
     </nav>
@@ -564,6 +566,7 @@ function SiteFooter() {
             {link('Kısayollar', () => useApp.getState().setShortcutsOpen(true))}
             {link('Sorun giderme', () => useApp.getState().openHelp('troubleshoot'))}
             {link('.snmtdz formatı', () => useApp.getState().openHelp('guide', 'disa-aktarma'))}
+            {link('1 piksel = 1 insan', () => setView('pixels'))}
             {link('Hakkında & Credits', () => setView('credits'))}
           </ul>
         </div>

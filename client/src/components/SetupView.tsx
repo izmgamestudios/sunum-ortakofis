@@ -145,13 +145,31 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
         ))}
       </div>
       {tab === 'text' && (
-        <textarea
-          className="input textarea"
-          rows={8}
-          value={step.text}
-          placeholder="Bu adımda anlatacakların, ana mesaj, konuşma notları…"
-          onChange={(e) => patch({ text: e.target.value })}
-        />
+        <div className="stack">
+          <textarea
+            className="input textarea"
+            rows={8}
+            value={step.text}
+            placeholder="Bu adımda anlatacakların, ana mesaj, konuşma notları…"
+            onChange={(e) => patch({ text: e.target.value })}
+          />
+          {index > 0 && (
+            <label className="stack">
+              <span className="small muted">🫁 Geçiş göndermesi — bu adımdan önceki molada ekranda görünür (nefes / esneme / su sırasında düşündürecek bir cümle)</span>
+              <textarea
+                className="input textarea"
+                rows={2}
+                value={step.cue ?? ''}
+                placeholder="Örn. Atom neredeyse tamamen boşluktur; zihninde de biraz boşluk aç…"
+                onChange={(e) => patch({ cue: e.target.value || undefined })}
+              />
+            </label>
+          )}
+          <label className="switch small">
+            <input type="checkbox" checked={step.widget === 'pixels'} onChange={(e) => patch({ widget: e.target.checked ? 'pixels' : undefined })} />
+            <span>🌍 Bu adımda “1 piksel = 1 insan” aracını sahnede sekme olarak göster</span>
+          </label>
+        </div>
       )}
       {tab === 'media' && (
         <div className="stack">

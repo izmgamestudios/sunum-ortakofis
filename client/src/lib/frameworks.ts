@@ -1,6 +1,6 @@
 // client/src/lib/frameworks.ts — thinking / coaching / productivity frameworks + business canvases (seed data)
 
-export type FwGroup = 'amac' | 'karar' | 'dusunme' | 'problem' | 'ogrenme' | 'verimlilik' | 'hedef' | 'iletisim' | 'takim' | 'oz' | 'urun' | 'is';
+export type FwGroup = 'amac' | 'karar' | 'dusunme' | 'problem' | 'ogrenme' | 'verimlilik' | 'hedef' | 'iletisim' | 'takim' | 'oz' | 'urun' | 'is' | 'evren';
 
 export const FW_GROUPS: Record<FwGroup, { label: string; emoji: string }> = {
   amac: { label: 'Amaç & Anlam', emoji: '🧭' },
@@ -15,6 +15,7 @@ export const FW_GROUPS: Record<FwGroup, { label: string; emoji: string }> = {
   oz: { label: 'Öz Farkındalık', emoji: '🪞' },
   urun: { label: 'Ürün & Strateji', emoji: '🚀' },
   is: { label: 'İş Modeli Kanvasları', emoji: '🧾' },
+  evren: { label: 'Bilinç & Evren', emoji: '🌌' },
 };
 
 export type Layout =
@@ -40,7 +41,13 @@ export type Layout =
   | { kind: 'kano' }
   | { kind: 'flow' }
   | { kind: 'bizcanvas'; blocks: BizBlock[] }
-  | { kind: 'vpc' };
+  | { kind: 'vpc' }
+  /** logarithmic size ruler: [power of ten, label, note] */
+  | { kind: 'scale'; from: number; to: number; marks: [number, string, string?][] }
+  /** levels stacked bottom-up (1 = densest) */
+  | { kind: 'ladder' }
+  /** "benden bize": me → similarities → us, with everyday examples */
+  | { kind: 'induction'; examples: [string, string][] };
 
 /** Business-canvas cell: c1…c5 = the five top columns (t/b = top/bottom half), b1/b2 = bottom row halves. */
 export type BizArea = 'c1' | 'c2t' | 'c2b' | 'c3' | 'c4t' | 'c4b' | 'c5' | 'b1' | 'b2';
@@ -146,7 +153,38 @@ export const FRAMEWORKS: Framework[] = [
     { title: 'Maliyet Yapısı', icon: '💸', q: 'Müşteri edinme, dağıtım, barındırma, ekip: sabit ve değişken maliyetler.', area: 'b1' },
     { title: 'Gelir Akışları', icon: '💰', q: 'Gelir modeli, fiyat, yaşam boyu değer, brüt kâr.', area: 'b2' },
   ] } },
-  { id: 63, name: 'Değer Önerisi Kanvası', subtitle: 'Value Proposition Canvas', group: 'is', desc: 'Ürününün (değer haritası) müşterinin işleri, acıları ve kazançlarıyla (müşteri profili) nasıl örtüştüğünü göster.', parts: ['Ürün & Hizmetler', 'Kazanç Yaratıcılar', 'Acı Gidericiler', 'Müşteri İşleri', 'Kazançlar', 'Acılar'], layout: { kind: 'vpc' } },
+  { id: 63, name: 'Değer Önerisi Kanvası', subtitle: 'Value Proposition Canvas', group: 'is', desc: 'Ürününün (değer haritası) müşterinin işleri, acıları ve kazançlarıyla (müşteri profili) nasıl örtüştüğünü göster.', parts: ['Ürün & Hizmetler', 'Kazanç Sağlayıcılar', 'Acı Gidericiler', 'Müşteri İşleri', 'Kazançlar', 'Acılar'], layout: { kind: 'vpc' } },
+  { id: 64, name: 'Evrenin Ölçekleri', subtitle: 'Mikro evrenden makro evrene — 10ⁿ metre', group: 'evren', desc: 'Planck uzunluğundan gözlemlenebilir evrene 62 basamaklık bir yolculuk; insan (10⁰ m) tam ortada. Perspektif, farkındalık ve “kendi ölçeğini bulma” sunumları için.', parts: ['Planck uzunluğu', 'Atom çekirdeği', 'Atom', 'Mikron', 'İnsan', 'Dünya', 'Güneş Sistemi', 'Işık yılı', 'Samanyolu', 'Gözlemlenebilir evren'], layout: { kind: 'scale', from: -35, to: 27, marks: [
+    [-35, 'Planck uzunluğu', 'uzayın en küçük anlamlı ölçüsü'],
+    [-15, 'Atom çekirdeği', 'kütlenin %99,9’u burada'],
+    [-10, 'Atom', 'neredeyse tamamen boşluk'],
+    [-6, 'Mikron', 'bakteri, hücre parçaları'],
+    [0, 'İnsan', '≈ 1 m — sen buradasın'],
+    [7, 'Dünya çapı', '≈ 12.700 km'],
+    [12, 'Güneş Sistemi', 'gezegen yörüngeleri'],
+    [16, 'Işık yılı', '≈ 9,46 × 10¹⁵ m'],
+    [21, 'Samanyolu', '100–200 milyar yıldız'],
+    [27, 'Gözlemlenebilir evren', '≈ 10⁸⁰ atom'],
+  ] } },
+  { id: 65, name: '12 Boyutlu Bilinç Modeli', subtitle: '12D Consciousness — spiritüel / New Age haritası', group: 'evren', desc: 'Spiritüel felsefe ve New Age öğretilerinde anlatılan, yoğun maddeden kaynak bilincine uzanan 12 farkındalık basamağı. Bilimsel bir teori değil; içsel yolculuk için sembolik bir harita.', parts: [
+    '1. Boyut\nMadde ve atomlar — mineraller, kristaller, fiziksel yasalar; saf var oluş',
+    '2. Boyut\nBitki ve hayvanlar — hücresel yaşam, büyüme, içgüdü',
+    '3. Boyut\nİnsan ve ego — benlik, doğrusal zaman, özgür irade',
+    '4. Boyut\nZaman, duygular, astral plan — düşüncenin anında biçimlendiği köprü',
+    '5. Boyut\nSevgi ve bilgi — koşulsuz sevgi, birlik, paralel olasılıklar',
+    '6. Boyut\nKozmik bilinç — kutsal geometri, ışık beden, yaratım kalıpları',
+    '7. Boyut\nRuhsal plan — saf ses, ışık, frekans; “Ben kimim?”',
+    '8. Boyut\nKolektif & tekil denge — bütünle bir, özgün kalan bilinç',
+    '9. Boyut\nGalaktik bilinç — yıldız sistemleri, kolektif ruh grupları',
+    '10. Boyut\nEvrensel yaratım — zıtlıkların nötrlendiği mimari',
+    '11. Boyut\nSonsuz ışık — kaynaktan önceki son eşik',
+    '12. Boyut\nMutlak birlik — kaynak bilinci, Teklik (Oneness)',
+  ], layout: { kind: 'ladder' } },
+  { id: 66, name: 'Benden Bize', subtitle: 'Tümevarımla bireyden topluma', group: 'evren', desc: 'Bireysel deneyim, duygu ve gözlemlerden yola çıkıp ortak bir insani gerçeğe varmak: parçadan bütüne düşünmenin insan ilişkilerine uyarlanmış hâli.', parts: ['Ben\nBireysel farkındalık', 'Benzerlikleri görme', 'Biz\nOrtak payda'], layout: { kind: 'induction', examples: [
+    ['💗 Empati', 'Kendi üzüntüsünü tanıyan, başkasının acısını anlar ve destek olur.'],
+    ['✊ Toplumsal değişim', 'Bir kişinin dile getirdiği haksızlık, aynı sorunu yaşayan binlerce insanı buluşturur.'],
+    ['📖 Edebiyat & sanat', 'Yazar kendi iç dünyasını anlatır; okuyan herkes kendinden bir parça bulur.'],
+  ] } },
 ];
 
 export const frameworkById = (id: number) => FRAMEWORKS.find((f) => f.id === id);

@@ -64,6 +64,7 @@ function staticItems(): SearchItem[] {
     ['Şablonlar', 'templates', '📚'],
     ['Yardım merkezi', 'faq', '❓'],
     ['Hakkında & Credits', 'credits', '🙏'],
+    ['1 piksel = 1 insan (dünya nüfusu ekranı)', 'pixels', '🌍'],
   ];
   top.forEach(([t, v, ic]) => add({ id: `m-top-${v}`, type: 'menu', title: t, path: ['Menüler', 'Üst menü'], icon: ic, run: nav(v) }));
   Object.entries(CATEGORIES).forEach(([k, c]) =>

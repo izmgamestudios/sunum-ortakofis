@@ -394,7 +394,7 @@ async function doHydrate(): Promise<void> {
   try {
     const saved = await idbGet<{ pres: Presentation; view: View; live: LiveState }>(STORAGE_KEY);
     if (saved?.pres?.steps?.length) {
-      const view = saved.view === 'faq' || saved.view === 'credits' ? 'setup' : saved.view;
+      const view = saved.view === 'faq' || saved.view === 'credits' || saved.view === 'pixels' ? 'setup' : saved.view;
       useApp.setState({ pres: normalizePresentation(saved.pres), view: view ?? 'setup', live: saved.live ?? idleLive() });
     }
     const { initLibrary } = await import('./lib/library');

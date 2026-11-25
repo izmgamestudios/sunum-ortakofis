@@ -12,6 +12,8 @@ interface Props {
   nextMinutes: number;
   onContinue: () => void;
   onExtend: () => void;
+  /** reflection for the upcoming step (geçiş göndermesi) */
+  cue?: string;
 }
 
 const BREATH = [
@@ -67,7 +69,7 @@ function Water() {
   );
 }
 
-export function BreakScreen({ activity, elapsedMs, plannedSec, nextTitle, nextMinutes, onContinue, onExtend }: Props) {
+export function BreakScreen({ activity, elapsedMs, plannedSec, nextTitle, nextMinutes, onContinue, onExtend, cue }: Props) {
   const meta = BREAK_ACTIVITIES[activity];
   const remainingMs = plannedSec != null ? plannedSec * 1000 - elapsedMs : null;
   return (
@@ -83,6 +85,11 @@ export function BreakScreen({ activity, elapsedMs, plannedSec, nextTitle, nextMi
           <div className="stretch-emoji">🤫</div>
           <p className="breath-label">Sessizce toparlan</p>
         </div>
+      )}
+      {cue && (
+        <blockquote className="break-cue">
+          <span aria-hidden="true">🌌</span> {cue}
+        </blockquote>
       )}
       <div className="break-footer">
         <p className="muted">

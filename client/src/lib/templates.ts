@@ -45,6 +45,11 @@ interface TemplateStep {
   framework?: number;
   /** override the default "step N = N minutes" duration */
   minutes?: number;
+  /** pre-filled text for the framework's sticky notes (in drawing order) */
+  stickies?: string[];
+  /** break-screen reflection shown before this step */
+  cue?: string;
+  widget?: 'pixels';
 }
 
 export interface PresentationTemplate {
@@ -84,7 +89,7 @@ const BASE_TEMPLATES: PresentationTemplate[] = [
     ],
   },
   {
-    id: 'lean-canvas',
+    id: 'lean-canvas-9',
     category: 'girisimcilik',
     title: 'Lean Canvas Sunumu',
     description: 'Ash Maurya’nın yalın kanvası 9 adımda: problemden haksız avantaja. Erken aşama girişimler ve fikir doğrulama için.',
@@ -102,6 +107,46 @@ const BASE_TEMPLATES: PresentationTemplate[] = [
       { title: 'Maliyet Yapısı', minutes: 2, text: 'Müşteri edinme maliyeti (CAC), dağıtım, barındırma, ekip; başa baş noktası.', words: ['CAC', 'barındırma', 'ekip', 'pazarlama', 'sabit', 'değişken', 'başa baş', 'nakit akışı', 'runway'] },
       { title: 'Temel Metrikler', minutes: 2, text: 'Başarıyı hangi sayılarla ölçeceğiz? Edinme, aktivasyon, elde tutma, gelir, tavsiye.', nodes: ['Edinme', 'Aktivasyon', 'Elde tutma', 'Gelir', 'Tavsiye', 'Kuzey yıldızı metriği'] },
       { title: 'Haksız Avantaj & Kapanış', minutes: 3, text: 'Kolayca kopyalanamayan ne var? Sonraki deney ve kapanış cümlesi.', tree: 'Haksız avantaj\n  İçeriden bilgi\n  Topluluk\n  Ağ etkisi\n  Ekip\nSonraki deney\nKapanış cümlesi' },
+    ],
+  },
+  {
+    id: 'value-proposition-canvas',
+    category: 'girisimcilik',
+    title: 'Değer Önerisi Kanvası Sunumu',
+    description: 'Müşteri profili (işler, acılar, kazançlar) ile değer haritasını (ürünler, acı gidericiler, kazanç sağlayıcılar) eşleştir. İki doldurulmuş örnekle: ev yemeği uygulaması ve KOBİ bulut muhasebe.',
+    audience: 'Ürün ekipleri, girişimciler, inovasyon atölyeleri',
+    level: 'Başlangıç',
+    frameworkId: 63,
+    roleplay: { emotion: 'calm', tone: 'friendly', setting: 'meeting', crowd: 2 },
+    steps: [
+      { title: 'Müşteri İşleri', minutes: 2, framework: 63, text: 'Sağ taraf — müşteri profili. Müşteri neyi tamamlamak, hangi problemi çözmek, hangi hedefe ulaşmak istiyor? İşlevsel, sosyal ve duygusal işleri ayır. Tuvaldeki kanvası adım adım doldur.', words: ['görev', 'hedef', 'problem', 'işlevsel', 'sosyal', 'duygusal', 'bağlam', 'sıklık', 'öncelik'] },
+      { title: 'Acılar', minutes: 2, text: 'Bu işleri yaparken karşılaşılan engeller, riskler, maliyetler ve olumsuz deneyimler. En şiddetli 3 acıyı sırala.', words: ['engel', 'risk', 'maliyet', 'zaman kaybı', 'hata', 'gecikme', 'belirsizlik', 'stres', 'karmaşa'] },
+      { title: 'Kazançlar', minutes: 2, text: 'Müşterinin beklediği somut faydalar, tasarruflar ve olumlu sonuçlar: zorunlu, beklenen, arzu edilen, beklenmedik.', words: ['tasarruf', 'hız', 'kalite', 'güven', 'statü', 'kolaylık', 'sağlık', 'bütçe', 'görünürlük'] },
+      { title: 'Ürün & Hizmetler', minutes: 2, text: 'Sol taraf — değer haritası. Müşteriye sunduğun somut çözümler: fiziksel, dijital, hizmet, finansal.', nodes: ['Fiziksel ürün', 'Dijital ürün', 'Hizmet', 'Finansal (abonelik, kredi)'] },
+      { title: 'Acı Gidericiler & Kazanç Sağlayıcılar', minutes: 3, text: 'Her acıyı nasıl azaltıyor ya da ortadan kaldırıyorsun? Müşteriye nasıl ek fayda üretiyorsun? Uyum: acı gidericiler ↔ acılar, kazanç sağlayıcılar ↔ kazançlar, ürünler ↔ işler.', tree: 'Acı gidericiler\n  En şiddetli acı → çözüm\n  Risk → güvence\nKazanç sağlayıcılar\n  Beklenen fayda\n  Beklenmedik sürpriz\nUyum kontrolü' },
+      { title: 'Örnek 1: Ev Yemeği Sipariş Uygulaması', minutes: 3, framework: 63, stickies: ['Yerel ev aşçılarından günlük yemek teslimatı yapan mobil uygulama', 'Kalori/malzeme bilgisi, haftalık abonelik indirimi, aşçı puanlama', '30 dakikada kapıda teslimat, şeffaf ve uygun fiyatlı porsiyonlar', 'Ev yapımı tadında, bütçe dostu, hızlı teslim', 'İş çıkışı pişirmeye vakit yok; fast-food pahalı ve sağlıksız', 'Akşam yemeği yemek, sağlıklı beslenmek'], text: 'Müşteri: çalışan profesyoneller.\n\nMüşteri profili — İşler: akşam yemeği yemek, sağlıklı beslenmek. Acılar: iş çıkışı yemek pişirmeye vakit bulamamak; dışarıdaki fast-food seçeneklerinin pahalı ve sağlıksız olması. Kazançlar: ev yapımı tadında, bütçe dostu ve hızlı teslim edilen öğünler.\n\nDeğer haritası — Ürün: yerel ev aşçılarından günlük yemek teslimatı mobil uygulaması. Acı gidericiler: 30 dakikada kapıda teslimat, şeffaf ve uygun fiyatlı porsiyonlar. Kazanç sağlayıcılar: kalori/malzeme bilgisi, haftalık abonelik indirimi, aşçı puanlama sistemi.', words: ['ev yemeği', 'teslimat', 'abonelik', 'kalori', 'puanlama', 'bütçe', 'sağlıklı', 'hızlı', 'aşçı'] },
+      { title: 'Örnek 2: KOBİ’ler İçin Bulut Muhasebe', minutes: 3, framework: 63, stickies: ['E-fatura ve banka entegrasyonlu web tabanlı ön muhasebe platformu', 'Otomatik vade hatırlatıcıları, gerçek zamanlı nakit akışı grafikleri', 'Otomatik banka hareketi eşleştirme, tek tıkla mali müşavir erişimi', 'Anlık kâr-zarar, zaman ve danışmanlık maliyetinden tasarruf', 'Excel’de hata, muhasebeciyle evrak paylaşımında gecikme', 'Fatura kesmek, nakit akışını izlemek, vergiye hazırlanmak'], text: 'Müşteri: küçük işletme sahipleri.\n\nMüşteri profili — İşler: faturalandırma yapmak, nakit akışını takip etmek, vergi dönemine hazırlanmak. Acılar: karmaşık Excel tablolarında hata yapmak; muhasebeciyle evrak paylaşımında gecikmek. Kazançlar: anlık kâr-zarar görünümü; zamandan ve danışmanlık maliyetinden tasarruf.\n\nDeğer haritası — Ürün: e-fatura ve banka entegrasyonlu web tabanlı ön muhasebe platformu. Acı gidericiler: otomatik banka hareketi eşleştirme, tek tıkla mali müşavir erişimi. Kazanç sağlayıcılar: otomatik vade hatırlatıcıları, gerçek zamanlı nakit akışı grafikleri.\n\nKapanış: kendi ürününde en zayıf uyum hangi blokta? Bu hafta hangi müşteriyle konuşup doğrulayacaksın?', words: ['e-fatura', 'banka', 'nakit akışı', 'vergi', 'mali müşavir', 'Excel', 'otomasyon', 'hatırlatıcı', 'tasarruf'] },
+    ],
+  },
+  {
+    id: 'mikrodan-makroya',
+    category: 'kisisel',
+    title: 'Mikrodan Makroya: Ben, Biz ve Evren',
+    description: 'Planck uzunluğundan (10⁻³⁵ m) gözlemlenebilir evrene (10²⁷ m) ölçek yolculuğu üzerinden farkındalık, wellness ve psikoloji sunumu. Benden bize, bireysel & toplumsal değer, 12 boyutlu bilinç haritası ve “1 piksel = 1 insan” deneyimiyle.',
+    audience: 'Kişisel gelişim, farkındalık, wellness ve psikoloji grupları',
+    level: 'Orta',
+    frameworkId: 64,
+    roleplay: { emotion: 'calm', tone: 'inspiring', setting: 'stage', crowd: 3 },
+    steps: [
+      { title: 'Planck uzunluğu · 10⁻³⁵ m — Şimdi', minutes: 2, framework: 64, text: 'Evrenin en küçük anlamlı ölçüsünden başlıyoruz. Farkındalık da en küçük birimde başlar: bu an, bu nefes. Tuvaldeki ölçek cetveli boyunca yolculuğumuzu izle: her basamak 10 kat.', words: ['şimdi', 'an', 'nefes', 'dikkat', 'küçük', 'kuantum', 'başlangıç', 'merak', 'farkındalık'] },
+      { title: 'Atom çekirdeği · 10⁻¹⁵ m — Çekirdek değerlerim', minutes: 2, cue: 'Nefes alırken düşün: atomun kütlesinin neredeyse tamamı minicik çekirdeğinde. Senin de “çekirdeğin” var — seni sen yapan değerler. Nefes verirken birini içinden say.', text: 'Atomun kütlesinin %99,9’u çekirdekte. İnsanı ayakta tutan da çekirdek değerleridir. Seni sen yapan 3 değer ne?', words: ['dürüstlük', 'sevgi', 'cesaret', 'adalet', 'merhamet', 'özgürlük', 'aile', 'emek', 'saygı'] },
+      { title: 'Atom · 10⁻¹⁰ m — Boşluğun gücü', minutes: 2, cue: 'Atom neredeyse tamamen boşluktur. Bu molada zihninde de biraz boşluk aç: 4 sn al, 4 sn tut, 4 sn bırak. Boşluk eksiklik değil, alan demek.', text: 'Atomun hacminin neredeyse tamamı boşluk. Zihnimizde de boşluğa, sessizliğe ihtiyaç var: düşünceler ve duygular arasında nefes alacak bir alan. Meditasyon, sınırlar, “hayır” diyebilmek.', words: ['boşluk', 'sessizlik', 'meditasyon', 'sınır', 'alan', 'dinlenme', 'zihin', 'sakinlik', 'kabul'] },
+      { title: 'Mikron · 10⁻⁶ m — Küçük adımlar', minutes: 2, cue: 'Bedeninde şu an milyarlarca hücre sessizce yenileniyor. Omuzlarını gevşet, boynunu yavaşça iki yana esnet: büyük değişim, mikron mikron gelir.', text: 'Hücreler mikron ölçeğinde çalışır; beden her gün milyarlarcasını yeniler. Alışkanlıklar da böyledir: görünmeyecek kadar küçük adımlar, zamanla bambaşka bir sen. Bu hafta %1’lik hangi adım?', words: ['alışkanlık', 'hücre', 'yenilenme', '%1', 'süreklilik', 'sabır', 'rutin', 'uyku', 'beslenme'] },
+      { title: 'İnsan · 10⁰ m — Ben', minutes: 3, cue: 'Tam ortadayız: 10⁰ metre, yani sen. Ellerini kalbinin üzerine koy, bir yudum su iç. Mikro evren de makro evren de buradan, senin bakışından ölçülüyor.', text: 'Ölçeklerin tam ortasındayız: insan ≈ 1 metre. Mikroya da makroya da buradan bakıyoruz. Bireysel farkındalık: bugün ne hissediyorum, neye ihtiyacım var, beni ne zorluyor?', words: ['duygu', 'ihtiyaç', 'beden', 'öz şefkat', 'farkındalık', 'kimlik', 'sınır', 'güç', 'kırılganlık'] },
+      { title: 'Dünya · 10⁷ m — Benden bize', minutes: 3, framework: 66, cue: 'Dünya’nın çapı 12.700 km ve üzerinde 8 milyardan fazla “ben” var. Gözlerini kapat ve şu an aynı anda nefes alan milyarlarca insanı düşün: hepimiz aynı gemideyiz.', text: 'Tümevarım: kendi deneyimimden ortak insani gerçeğe. 1) Bireysel farkındalık — kendi duygularımı, ihtiyaçlarımı gözlemlerim. 2) Benzerlikleri görme — yaşadıklarımın başkalarında da olduğunu fark ederim. 3) Ortak payda — “hepimiz aynı gemideyiz” düşüncesi dayanışmaya dönüşür. Örnekler: empati, toplumsal değişim, edebiyat ve sanat.', nodes: ['Ben: bireysel farkındalık', 'Benzerlikleri görme', 'Biz: ortak payda', 'Empati', 'Toplumsal değişim', 'Edebiyat & sanat'] },
+      { title: 'Güneş Sistemi · 10¹²–10¹⁶ m — Değer önerim', minutes: 3, framework: 63, stickies: ['Yeteneklerim, emeğim, zamanım, hikâyem', 'Toplumsal değer: bilgimi paylaşmak, gönüllülük, ilham vermek', 'Dinlemek, destek olmak, yükü paylaşmak', 'Bireysel değer: anlam, huzur, aidiyet', 'Yalnızlık, tükenmişlik, değersizlik hissi', 'Kendimi tanımak, büyümek, bağ kurmak'], cue: 'Güneş’ten çıkan ışık Dünya’ya 8 dakikada ulaşır. Senin ışığın kime ulaşıyor? Ayağa kalk, kollarını yukarı uzat, sonra yavaşça indir.', text: 'Gezegenler Güneş’in çekimiyle yörüngede kalır. Senin çevrene sunduğun “çekim” ne? Değer Önerisi Kanvası’nı kendine uygula — sağda bireysel değer (kendi işlerim, acılarım, kazançlarım), solda toplumsal değer (topluma ne sunuyorum, kimin acısını hafifletiyorum, kime kazanç sağlıyorum).', tree: 'Bireysel değer\n  Kendimi tanımak\n  Anlam ve huzur\n  Sağlık ve denge\nToplumsal değer\n  Bilgi paylaşımı\n  Gönüllülük\n  İlham ve rol model\nUyum: ben ↔ biz' },
+      { title: 'Samanyolu · 10²¹ m — 12 boyutlu bilinç haritası', minutes: 3, framework: 65, cue: 'Samanyolu’nda 100–200 milyar yıldız var ve ışığın onu bir uçtan öbür uca geçmesi 100.000 yıl sürer. Gözlerini kapat; yoğun madde hissinden hafif bir ışığa doğru, nefesinle 12 basamak yüksel.', text: 'Spiritüel felsefe ve New Age öğretilerinde anlatılan 12 boyutlu bilinç modeli: yoğun maddeden (1) kaynak bilincine (12) uzanan sembolik bir farkındalık haritası. Not: bilimsel bir teori değil; kendi içsel yolculuğunu konuşmak için bir metafor. Sen bugün en çok hangi basamakta yaşıyorsun?', nodes: ['1 Madde ve atomlar', '2 Bitki ve hayvanlar', '3 İnsan ve ego', '4 Zaman, duygular, astral', '5 Sevgi ve bilgi', '6 Kozmik bilinç', '7 Ruhsal plan', '8 Kolektif & tekil denge', '9 Galaktik bilinç', '10 Evrensel yaratım', '11 Sonsuz ışık', '12 Mutlak birlik'] },
+      { title: 'Gözlemlenebilir evren · 10²⁷ m — 1 piksel = 1 insan', minutes: 3, widget: 'pixels', cue: 'Gözlemlenebilir evrende yaklaşık 10⁸⁰ atom var, Dünya’da 8,3 milyar insan. Şimdi her insanı bir piksel olarak düşün: sen de o devasa resmin vazgeçilmez bir noktasısın.', text: 'Dünya nüfusu kadar piksel: 16:9 ekranda ≈ 121.680 × 68.445 (≈ 8,3 gigapiksel) — 4.016 Full HD ya da 1.004 adet 4K ekran. “🌍 Piksel” sekmesinde tek bir pikselden başlayıp resmi adım adım aç: her piksel bir kıta, bir ülke, bir şehir… sonunda bir insan. Tek bir pikselden bütün resim anlaşılmaz; ama her piksel olmadan da resim eksik kalır. Kapanış: sen hangi rengi katıyorsun?', words: ['piksel', 'insanlık', 'bütün', 'parça', 'renk', 'bağ', 'anlam', 'sen', 'biz'] },
     ],
   },
   {
@@ -434,11 +479,19 @@ const BASE_TEMPLATES: PresentationTemplate[] = [
 const firstLine = (p: string) => p.split('\n')[0].trim();
 
 /** Framework infographic as one group whose children are position-locked. */
-function frameworkCanvas(id?: number): { canvas: CanvasElement[]; groups: CanvasGroup[] } {
+function frameworkCanvas(id?: number, stickies?: string[]): { canvas: CanvasElement[]; groups: CanvasGroup[] } {
   const fw = id ? frameworkById(id) : undefined;
   if (!fw) return { canvas: [], groups: [] };
   const g: CanvasGroup = { id: uid(), name: fw.name, lockChildren: true, frameworkId: fw.id };
-  return { canvas: buildFramework(fw).map((e) => (e.type === 'sticky' ? e : { ...e, groupId: g.id })), groups: [g] };
+  let k = 0;
+  return {
+    canvas: buildFramework(fw).map((e) => {
+      if (e.type !== 'sticky') return { ...e, groupId: g.id };
+      const text = stickies?.[k++];
+      return text ? { ...e, text, fontSize: 15 } : e;
+    }),
+    groups: [g],
+  };
 }
 
 /** One 3-step template per framework: the model (diagram on canvas) → your example (parts as tombala) → action plan. */
@@ -478,7 +531,9 @@ export function presentationFromTemplate(t: PresentationTemplate): Presentation 
       words: s.words ?? [],
       topicTree: s.nodes ? s.nodes.map((n) => createNode(n)) : s.tree ? parseOutline(s.tree) : [],
       ...(s.minutes ? { durationSec: s.minutes * 60 } : {}),
-      ...frameworkCanvas(s.framework),
+      ...(s.cue ? { cue: s.cue } : {}),
+      ...(s.widget ? { widget: s.widget } : {}),
+      ...frameworkCanvas(s.framework, s.stickies),
     })),
   };
 }

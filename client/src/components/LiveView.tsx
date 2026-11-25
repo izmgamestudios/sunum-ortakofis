@@ -273,6 +273,7 @@ export function LiveView() {
                     plannedSec={breakTotalSec}
                     nextTitle={pres.steps[live.stepIndex + 1]?.title ?? ''}
                     nextMinutes={(pres.steps[live.stepIndex + 1]?.durationSec ?? 60) / 60}
+                    cue={pres.steps[live.stepIndex + 1]?.cue}
                     onContinue={next}
                     onExtend={() => extendBreak(15)}
                   />

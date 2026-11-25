@@ -28,7 +28,7 @@ export const GUIDE: GuideArticle[] = [
     category: 'Başlangıç',
     summary: 'Sunum oluştur, adımları ayarla, başlat ve raporunu al.',
     sections: [
-      { h: '1. Hazırlık', ul: ['Hazırlık ekranında sunum başlığını, sunan kişiyi ve hedef kitleyi yaz.', 'Adım sayısını 1–9 arasında seç; N. adım varsayılan olarak N dakika sürer.', 'İstersen “Şablondan başla” ile hazır bir iskelet ya da 63 düşünme modeli ve iş kanvasından birini seç.'] },
+      { h: '1. Hazırlık', ul: ['Hazırlık ekranında sunum başlığını, sunan kişiyi ve hedef kitleyi yaz.', 'Adım sayısını 1–9 arasında seç; N. adım varsayılan olarak N dakika sürer.', 'İstersen “Şablondan başla” ile hazır bir iskelet ya da 66 düşünme modeli, iş ve bilinç kanvasından birini seç.'] },
       { h: '2. İçerik', ul: ['Her adım için Metin, Medya, Tuval ve Konu akışı sekmelerini doldur.', 'Yüklediğin görsel/PDF otomatik olarak o adımın tuvaline yerleşir.'] },
       { h: '3. Sunum', ul: ['“Sunumu başlat” (Ctrl+Enter) ile başla; üstte kum saati ve sayaç akar.', 'Son saniyelerde zil çalar; → ile sonraki adıma geç.', 'Canlı oda açarak izleyicilerin telefondan anonim katılmasını sağla.'] },
       { h: '4. Rapor', ul: ['Bitirdiğinde Rapor ekranında süre, etkileşim, içerik skorları ve otomatik SWOT oluşur.', 'PDF, .snmtdz, JSON veya Markdown olarak dışa aktar.'] },
@@ -127,11 +127,11 @@ export const GUIDE: GuideArticle[] = [
   {
     id: 'cerceveler',
     emoji: '🧩',
-    title: 'Çerçeveler & modeller (63)',
+    title: 'Çerçeveler & modeller (66)',
     category: 'Tuval & Medya',
     summary: 'Ikigai’den OKR’a düzenlenebilir infografikler ve 3 adımlı şablonlar.',
     sections: [
-      { h: 'Tuvale ekle', p: ['Tuval araç çubuğunda 🧩 Çerçeve’ye tıkla; 12 grupta 63 model arasında ara ya da filtrele, önizle ve “Tuvale ekle” ya da “Tuvali bununla değiştir” seç. Her daire, kutu ve yazı ayrı bir katmandır: taşı, boyutlandır, çift tıklayıp yazıları değiştir.'] },
+      { h: 'Tuvale ekle', p: ['Tuval araç çubuğunda 🧩 Çerçeve’ye tıkla; 13 grupta 66 model arasında ara ya da filtrele, önizle ve “Tuvale ekle” ya da “Tuvali bununla değiştir” seç. Her daire, kutu ve yazı ayrı bir katmandır: taşı, boyutlandır, çift tıklayıp yazıları değiştir.'] },
       { h: 'Şablon olarak', p: ['Şablonlar → 🧩 Çerçeveler & Modeller kategorisinde her model 3 adımlık bir sunumdur: 1) Model (diyagram tuvalde hazır, bileşenler konu ağacında) 2) Kendi örneğim (bileşenler tombala kelimesi — söyledikçe otomatik işaretlenir) 3) Eylem planı.'] },
       { h: 'Gruplar', ul: ['Amaç & Anlam · Karar & Önceliklendirme · Düşünme Modelleri · Problem Çözme · Öğrenme & Gelişim', 'Verimlilik & Alışkanlık · Hedef & Performans · İletişim & Geri Bildirim · Takım & Değişim · Öz Farkındalık · Ürün & Strateji'] },
     ],
@@ -296,7 +296,7 @@ export interface FaqItem {
 export const FAQS: FaqItem[] = [
   { tag: 'Veri', q: 'Sunumumu başkalarıyla nasıl paylaşırım?', a: 'Header’daki 🔗 Paylaş ile görünürlüğü (özel / bağlantıyla / herkese açık / şifreli) ve bağlantıyla gelenlerin rolünü (sadece izleme ya da düzenleme) seç. Ayarları yalnızca sunumu ilk paylaşan kişi değiştirebilir.' },
   { tag: 'Veri', q: 'Düzenleme bağlantısıyla gelen biri sunumumu silebilir mi?', a: 'Hayır. Düzenleyiciler içeriği değiştirebilir ama paylaşım ayarlarını değiştiremez ve sunumu silemez; bunlar yalnızca sahibe aittir.' },
-  { tag: 'Genel', q: 'Teknodoz Sunum nedir?', a: 'Adım adım, zaman kutulu sunum pratiği ve canlı sunum aracıdır: kum saati, zil, molalar, rol yapma, tuval, 63 düşünme modeli ve iş kanvası (Business Model Canvas, Lean Canvas), kelime tombalası, anonim kitle sohbeti, konuşma dökümü ve otomatik SWOT raporu tek yerde.' },
+  { tag: 'Genel', q: 'Teknodoz Sunum nedir?', a: 'Adım adım, zaman kutulu sunum pratiği ve canlı sunum aracıdır: kum saati, zil, molalar, rol yapma, tuval, 66 düşünme modeli ve kanvas (Business Model Canvas, Lean Canvas, Değer Önerisi, Evrenin Ölçekleri, 12 Boyut), kelime tombalası, anonim kitle sohbeti, konuşma dökümü ve otomatik SWOT raporu tek yerde.' },
   { tag: 'Genel', q: 'Ücretli mi? Beta ne demek?', a: 'Erken erişim (beta) sürecinde ücretsizdir. Beta, özelliklerin hâlâ geliştiği ve geri bildirimle şekillendiği anlamına gelir.' },
   { tag: 'Genel', q: 'Hesap açmam gerekiyor mu?', a: 'Hayır. Sunan kişi de katılımcılar da hesap açmadan kullanır; veriler cihazında saklanır.' },
   { tag: 'Genel', q: 'Her şeyi nasıl ararım?', a: 'Ctrl+K (Mac’te ⌘K) ya da / tuşuna bas. Menüler, ayarlar, şablonlar, modeller, kılavuz, SSS, kısayollar ve kendi içeriklerin aranır; türe göre filtreleyip sıralayabilirsin.' },
@@ -314,7 +314,9 @@ export const FAQS: FaqItem[] = [
   { tag: 'Tuval', q: 'Görselleri slayt gibi gösterebilir miyim?', a: 'Evet. Sahnedeki 🖼️ Slayt sekmesi adımın görsellerini, PDF sayfalarını ve videolarını oklar, küçük resimler ve kaydırma ile gösterir.' },
   { tag: 'Tuval', q: 'PDF’i sayfa sayfa okuyabilir miyim?', a: 'Evet. PDF slaytında sayfa gezgini, yakınlaştırma ve “Tuvale ekle” (o sayfayı resim olarak tuvale koyar) bulunur.' },
   { tag: 'Tuval', q: 'Business Model Canvas (İş Modeli Kanvası) nasıl kullanılır?', a: 'Tuvalde 🧩 Çerçeve → “İş Modeli Kanvasları” grubundan İş Modeli Kanvası, Lean Canvas ya da Değer Önerisi Kanvası’nı seç. Kanvas iskeleti kilitli bir grup olarak gelir; her bloktaki sarı/pembe not kağıtları serbesttir: çift tıklayıp yaz, sürükle, Ctrl+D ile çoğalt. Hazır akış için Şablonlar → Girişimcilik → “İş Modeli Sunumu” ya da “Lean Canvas Sunumu” (9 blok = 9 adım).' },
-  { tag: 'Tuval', q: 'Ikigai, SWOT gibi modelleri nasıl eklerim?', a: 'Tuvalde 🧩 Çerçeve → 63 model arasında seç → Tuvale ekle. Her parça düzenlenebilir. Şablon olarak başlamak için Şablonlar → Çerçeveler & Modeller.' },
+  { tag: 'Tuval', q: '“1 piksel = 1 insan” aracı nedir?', a: 'Dünya nüfusu kadar pikselli bir ekranın çözünürlüğünü (16:9’da ≈ 121.680 × 68.445), kaç Full HD/4K/8K ekran gerektiğini ve fiziksel boyutunu hesaplar. Bir görseli tek pikselden başlayıp adım adım açar; her adımda bir pikselin kaç insanı temsil ettiğini söyler. Kaynaklar → 1 piksel = 1 insan; ya da bir adımın Metin sekmesinde “🌍 aracını sahnede göster”i işaretle.' },
+  { tag: 'Sunum', q: 'Molada (geçiş) kendi cümlemi gösterebilir miyim?', a: 'Evet. Hazırlık → adım → ✍️ Metin altındaki “🫁 Geçiş göndermesi” alanına yaz; o adımdan önceki molada nefes/esneme/su ekranının altında görünür. “Mikrodan Makroya” şablonunda her geçiş evrenin bir ölçeğine gönderme yapar.' },
+  { tag: 'Tuval', q: 'Ikigai, SWOT gibi modelleri nasıl eklerim?', a: 'Tuvalde 🧩 Çerçeve → 66 model arasında seç → Tuvale ekle. Her parça düzenlenebilir. Şablon olarak başlamak için Şablonlar → Çerçeveler & Modeller.' },
   { tag: 'Kitle', q: 'Dinleyiciler nasıl katılır?', a: '📡 Oda sekmesinden canlı oda aç; QR kodu okutarak veya bağlantıyla uygulama indirmeden katılırlar.' },
   { tag: 'Kitle', q: 'Sohbet gerçekten anonim mi?', a: 'Evet. İsim, e-posta veya hesap istenmez; rastgele takma ad verilir. Mesajlar sunucuda saklanmaz.' },
   { tag: 'Kitle', q: 'İzleyici sorularını sunum sırasında nasıl takip ederim?', a: 'Sahnedeki 📌 Duvar sekmesi girdileri not kağıdı olarak gösterir; tuval açıkken yeni bir girdi köşede belirir. Notu tuvale yapıştırabilirsin.' },

@@ -9,8 +9,10 @@ import { SlideViewer } from './SlideViewer';
 import { StickyWall, useWallItems, WALL_META, type WallItem } from './StickyWall';
 import { MediaPanel } from './Media';
 import { APP_EVENTS } from '../lib/nav';
+import { uid } from '../lib/factory';
+import { PixelWorld } from './PixelWorld';
 
-type StageTab = 'canvas' | 'slides' | 'wall' | 'text';
+type StageTab = 'canvas' | 'slides' | 'wall' | 'text' | 'pixels';
 
 interface Props {
   stepIndex: number;
@@ -83,6 +85,10 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
   }, [audience, tab]);
 
   useEffect(() => {
+    if (tab === 'pixels' && step.widget !== 'pixels') setTab('canvas');
+  }, [tab, step.widget]);
+
+  useEffect(() => {
     if (tab === 'wall') setSeen(new Set(items.map((i) => i.id)));
   }, [tab, items]);
 
@@ -152,7 +158,8 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
             ['slides', `🖼️ Slayt${visualCount ? ` (${visualCount})` : ''}`],
             ['wall', `📌 Duvar${unread ? ` · ${unread} yeni` : ''}`],
             ['text', '✍️ Metin'],
-          ] as const
+            ...(step.widget === 'pixels' ? ([['pixels', '🌍 Piksel']] as const) : []),
+          ] as [StageTab, string][]
         ).map(([t, l]) => (
           <button key={t} role="tab" aria-selected={tab === t} className={`subtab ${tab === t ? 'is-active' : ''} ${t === 'wall' && unread ? 'has-badge' : ''}`} onClick={() => setTab(t)}>
             {l}
@@ -222,6 +229,16 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
               }
               onPin={pinSticky}
             />
+          )}
+          {!overlay && tab === 'pixels' && (
+            <div className="stage-pixels">
+              <PixelWorld
+                images={step.attachments.filter((a) => a.kind === 'image' && (a.dataUrl || a.url)).map((a) => ({ name: a.name, src: (a.dataUrl ?? a.url)! }))}
+                onPin={(dataUrl, name) =>
+                  addToCanvas([{ id: uid(), kind: 'image', name, mime: 'image/png', size: Math.round((dataUrl.length * 3) / 4), dataUrl }], true).then(() => setTab('canvas'))
+                }
+              />
+            </div>
           )}
           {!overlay && tab === 'text' && (
             <textarea

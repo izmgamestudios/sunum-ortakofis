@@ -106,6 +106,10 @@ export interface Step {
   drawnWords: string[];
   markedWords: string[];
   topicTree: TopicNode[];
+  /** reflection shown on the break screen right before this step (🫁 geçiş göndermesi) */
+  cue?: string;
+  /** interactive tool shown as an extra stage tab */
+  widget?: 'pixels';
 }
 
 export type NoteKind = 'note' | 'quote' | 'action' | 'idea' | 'question';
@@ -217,4 +221,4 @@ export interface LiveState {
   flipKey: number;
 }
 
-export type View = 'library' | 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits';
+export type View = 'library' | 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits' | 'pixels';

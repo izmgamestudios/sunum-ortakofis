@@ -4840,3 +4840,47 @@ a.footer-link {
     gap: 6px;
   }
 }
+
+/* ---------- break cue (geçiş göndermesi) ---------- */
+.break-cue {
+  margin: 0 auto 12px;
+  max-width: 620px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--purple);
+  border-radius: var(--radius-s);
+  background: color-mix(in srgb, var(--purple) 10%, var(--surface));
+  font-size: 1.02rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* ---------- 1 piksel = 1 insan ---------- */
+.pixel-world { min-width: 0; }
+.pixel-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-end; }
+.pixel-head h2 { margin: 2px 0; font-size: clamp(1.4rem, 3.4vw, 2.1rem); }
+.pixel-field input { width: 170px; }
+.pixel-stage { position: relative; border-radius: var(--radius); overflow: hidden; background: #000; border: 1px solid var(--border); }
+.pixel-canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.pixel-badge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: var(--radius-s);
+  background: rgba(15, 23, 42, 0.78);
+  color: #fff;
+  font-size: 0.9rem;
+  max-width: calc(100% - 24px);
+}
+.pixel-range { flex: 1 1 160px; min-width: 120px; }
+.pixel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.pixel-grid h3 { margin: 4px 0 0; font-size: 1rem; }
+.pixel-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.pixel-table td { padding: 5px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.pixel-table td:last-child { text-align: right; white-space: nowrap; }
+.pixel-story { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.stage-pixels { padding: 12px; overflow: auto; max-height: 100%; }
+.stage.is-fs .stage-pixels { height: 100%; }

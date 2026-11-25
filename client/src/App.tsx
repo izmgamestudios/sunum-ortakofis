@@ -1,5 +1,6 @@
 // client/src/App.tsx
 import { useEffect, useState } from 'react';
+import { PixelView } from './components/PixelView';
 import { hydrate, useApp } from './store';
 import { Shell } from './components/Shell';
 import { SetupView } from './components/SetupView';
@@ -35,6 +36,7 @@ function PresenterApp() {
       {view === 'templates' && <TemplatesView />}
       {view === 'faq' && <HelpCenter />}
       {view === 'credits' && <CreditsView />}
+      {view === 'pixels' && <PixelView />}
     </Shell>
   );
 }
