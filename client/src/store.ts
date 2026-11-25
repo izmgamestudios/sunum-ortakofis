@@ -24,6 +24,12 @@ const idleLive = (): LiveState => ({
   flipKey: 0,
 });
 
+/** is there a transition after step i? (per-gap switch, else the global break mode) */
+export function hasBreakAfter(pres: Presentation, i: number): boolean {
+  if (i >= pres.steps.length - 1) return false;
+  return pres.steps[i].breakAfter ?? pres.breakConfig.mode !== 'none';
+}
+
 export function phaseElapsedMs(live: LiveState, now = Date.now()): number {
   if (live.phase === 'idle' || live.phase === 'done') return 0;
   const end = live.pausedAt ?? now;
@@ -69,6 +75,10 @@ interface AppState {
   /** jump to any step (used while paused); keeps the paused state */
   goToStep: (index: number) => void;
   togglePause: () => void;
+  /** leave the intro screen and start step 1's timer */
+  startFromIntro: () => void;
+  /** toggle the break after step i (between i+1 and i+2) */
+  toggleBreakAfter: (index: number) => void;
   extendBreak: (sec: number) => void;
   finish: () => void;
   rerollRoleplay: () => void;
@@ -242,7 +252,21 @@ export const useApp = create<AppState>((set, get) => {
         view: 'live',
       });
       enterStep(0);
+      // intro: step 1 waits (paused) until the presenter starts it
+      if (get().pres.intro?.enabled) set((s) => ({ live: { ...s.live, pausedAt: Date.now(), intro: true } }));
     },
+
+    startFromIntro: () =>
+      set((s) => {
+        const now = Date.now();
+        return { live: { ...s.live, intro: false, pausedTotalMs: s.live.pausedTotalMs + (s.live.pausedAt ? now - s.live.pausedAt : 0), pausedAt: null, phaseStartedAt: s.live.pausedAt ? s.live.phaseStartedAt : now } };
+      }),
+
+    toggleBreakAfter: (index) =>
+      set((s) => {
+        const steps = s.pres.steps.map((st, i) => (i === index ? { ...st, breakAfter: !hasBreakAfter(s.pres, i) } : st));
+        return { pres: touch({ ...s.pres, steps }) };
+      }),
 
     next: () => {
       const { live, pres } = get();
@@ -250,7 +274,7 @@ export const useApp = create<AppState>((set, get) => {
         const isLast = live.stepIndex >= pres.steps.length - 1;
         if (isLast) return get().finish();
         // paused → the presenter is browsing: skip the break
-        if (pres.breakConfig.mode === 'none' || live.pausedAt) return enterStep(live.stepIndex + 1);
+        if (!hasBreakAfter(pres, live.stepIndex) || live.pausedAt) return enterStep(live.stepIndex + 1);
         return enterBreak();
       }
       if (live.phase === 'break') return enterStep(live.stepIndex + 1);
@@ -285,7 +309,8 @@ export const useApp = create<AppState>((set, get) => {
       const now = Date.now();
       const run = closeCurrentPhase(now);
       const { pres } = get();
-      set({ pres: touch({ ...pres, run: { ...run, endedAt: now } }), live: { ...idleLive(), phase: 'done' }, view: 'report' });
+      // with an outro the thank-you / contact screen comes first, the report is one click away
+      set({ pres: touch({ ...pres, run: { ...run, endedAt: now } }), live: { ...idleLive(), phase: 'done' }, view: pres.outro?.enabled ? 'live' : 'report' });
     },
 
     rerollRoleplay: () =>

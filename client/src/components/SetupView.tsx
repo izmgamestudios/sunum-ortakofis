@@ -1,5 +1,7 @@
 // client/src/components/SetupView.tsx
 import { useState } from 'react';
+import { GapToggle, IntroOutroEditor } from './IntroOutro';
+import { hasBreakAfter } from '../store';
 import { MinuteInput } from './MinuteInput';
 import { RichText } from './RichText';
 import { useApp } from '../store';
@@ -224,7 +226,7 @@ export function SetupView() {
   const setActive = useApp((s) => s.setActiveStep);
   const idx = Math.min(active, pres.steps.length - 1);
   const total = pres.steps.reduce((a, s) => a + s.durationSec, 0);
-  const breakCount = pres.breakConfig.mode === 'none' ? 0 : pres.steps.length - 1;
+  const breakCount = pres.steps.reduce((a, _, i) => a + (hasBreakAfter(pres, i) ? 1 : 0), 0);
   const maxDur = Math.max(...pres.steps.map((s) => s.durationSec));
   const isLive = live.phase === 'step' || live.phase === 'break';
 
@@ -263,6 +265,11 @@ export function SetupView() {
                     </span>
                   </button>
                   <MinuteInput sec={s.durationSec} onChange={(durationSec) => updateStep(i, { durationSec })} label={`${i + 1}. adım süresi (dakika)`} />
+                  {i < pres.steps.length - 1 && (
+                    <div className="timeline-gap">
+                      <GapToggle index={i} />
+                    </div>
+                  )}
                 </li>
               ))}
             </ol>
@@ -273,6 +280,11 @@ export function SetupView() {
             <button className="btn btn-ghost btn-sm" onClick={resetDurations}>
               ↺ Süreleri 1-2-3… dk yap
             </button>
+          </div>
+
+          <div className="card" data-anchor="setup-intro">
+            <h2 className="card-title">🎬 Giriş & Kapanış</h2>
+            <IntroOutroEditor />
           </div>
 
           <div className="card" data-anchor="setup-breaks">

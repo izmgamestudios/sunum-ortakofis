@@ -115,6 +115,8 @@ export interface Step {
   widget?: 'pixels';
   /** presenter's canvas zoom / pan — read-only viewers follow it */
   view?: CanvasView;
+  /** transition (break) after this step: undefined = follow the global break setting */
+  breakAfter?: boolean;
 }
 
 /** visible board region: top-left (ox, oy) in board units, zoom 1 = the 16:9 frame */
@@ -205,6 +207,33 @@ export interface Presentation {
   reflection: string;
   transcript: TranscriptSegment[];
   templateId?: string;
+  /** opening screen shown before step 1 (timer waits) */
+  intro?: IntroConfig;
+  /** closing screen: thanks + contact */
+  outro?: OutroConfig;
+}
+
+export interface IntroConfig {
+  enabled: boolean;
+  image?: Attachment;
+  /** defaults to the presentation title */
+  title?: string;
+  subtitle?: string;
+}
+
+export type ContactKind = 'email' | 'phone' | 'whatsapp' | 'website' | 'linkedin' | 'instagram' | 'x' | 'youtube' | 'github' | 'other';
+
+export interface ContactLink {
+  kind: ContactKind;
+  value: string;
+  label?: string;
+}
+
+export interface OutroConfig {
+  enabled: boolean;
+  image?: Attachment;
+  message: string;
+  contacts: ContactLink[];
 }
 
 export interface TranscriptSegment {
@@ -231,6 +260,8 @@ export interface LiveState {
   breakExtraSec: number;
   currentRoleplay: RoleplayConfig | null;
   flipKey: number;
+  /** intro screen is showing (step 1 waits, paused) */
+  intro?: boolean;
 }
 
 export type View = 'library' | 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits' | 'pixels';

@@ -1,5 +1,6 @@
 // client/src/components/LiveView.tsx
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { GapToggle, IntroScreen, OutroScreen } from './IntroOutro';
 import { phaseElapsedMs, useApp } from '../store';
 import { useRoom } from '../lib/room';
 import { useSettings } from '../lib/settings';
@@ -77,7 +78,9 @@ function SidePanel({ stepIndex, fixedTab }: { stepIndex: number; fixedTab?: Side
 export function LiveView() {
   const pres = useApp((s) => s.pres);
   const live = useApp((s) => s.live);
-  const { start, next, prev, togglePause, finish, extendBreak, rerollRoleplay, setView, goToStep, updateStep } = useApp.getState();
+  const { start, next, prev, togglePause: rawTogglePause, finish, extendBreak, rerollRoleplay, setView, goToStep, updateStep, startFromIntro } = useApp.getState();
+  // on the intro screen ▶ / Space / → start step 1 instead
+  const togglePause = () => (useApp.getState().live.intro ? startFromIntro() : rawTogglePause());
   const floating = useRoom((s) => s.floating);
   const { bell: bellOn, bellWarnSec, volume, liveLayout, set: setSettings } = useSettings();
   const canvasMode = liveLayout === 'canvas';
@@ -144,6 +147,10 @@ export function LiveView() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.closest('input, textarea, select, [contenteditable]')) return;
+      if (useApp.getState().live.intro && (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ')) {
+        e.preventDefault();
+        return startFromIntro();
+      }
       if (e.key === 'ArrowRight' || e.key === 'PageDown') next();
       else if (e.key === 'ArrowLeft' || e.key === 'PageUp') prev();
       else if (e.key === ' ') {
@@ -154,6 +161,26 @@ export function LiveView() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [next, prev, togglePause]);
+
+  if (live.phase === 'done' && pres.outro?.enabled) {
+    return (
+      <main className="live-empty live-outro">
+        <OutroScreen
+          pres={pres}
+          actions={
+            <>
+              <button className="btn btn-primary btn-lg" onClick={() => setView('report')}>
+                📊 Raporu gör
+              </button>
+              <button className="btn btn-lg" onClick={start}>
+                ↺ Yeniden başlat
+              </button>
+            </>
+          }
+        />
+      </main>
+    );
+  }
 
   if (live.phase === 'idle' || live.phase === 'done' || !step) {
     return (
@@ -229,7 +256,13 @@ export function LiveView() {
   const dots = (
     <ol className={`step-dots ${paused ? 'is-browsable' : ''}`} aria-label={paused ? 'Adımlar — gitmek için dokun' : 'Adımlar'}>
       {pres.steps.map((s, i) => (
-        <li key={s.id} className={`step-dot ${i < live.stepIndex ? 'is-done' : ''} ${i === live.stepIndex ? 'is-current' : ''}`}>
+        <Fragment key={s.id}>
+        {i > 0 && (
+          <li className="step-gap">
+            <GapToggle index={i - 1} compact />
+          </li>
+        )}
+        <li className={`step-dot ${i < live.stepIndex ? 'is-done' : ''} ${i === live.stepIndex ? 'is-current' : ''}`}>
           <button
             className="step-dot-btn"
             onClick={() => goToStep(i)}
@@ -242,12 +275,14 @@ export function LiveView() {
             <small className="dot-min">{minLabel(s.durationSec)}</small>
           </button>
         </li>
+        </Fragment>
       ))}
     </ol>
   );
 
-  const breakOverlay =
-    live.phase === 'break' && live.breakActivity ? (
+  const breakOverlay = live.intro ? (
+    <IntroScreen pres={pres} onStart={startFromIntro} />
+  ) : live.phase === 'break' && live.breakActivity ? (
       <BreakScreen
         activity={live.breakActivity}
         elapsedMs={elapsed}
@@ -302,7 +337,7 @@ export function LiveView() {
           panelFor={(t) => <SidePanel stepIndex={live.stepIndex} fixedTab={t} />}
           roleplay={live.currentRoleplay && live.phase === 'step' ? <RoleplayCard rp={live.currentRoleplay} onReroll={rerollRoleplay} compact /> : null}
         />
-        {paused && live.phase === 'step' && (
+        {paused && live.phase === 'step' && !live.intro && (
           <p className="paused-hint paused-hint--float" role="status">
             ⏸ Duraklatıldı — üstteki adım adlarına dokunarak gezinebilirsin. Devam: ▶ ya da Boşluk.
           </p>
