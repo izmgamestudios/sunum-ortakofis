@@ -15,10 +15,19 @@ interface CloudState {
 }
 export const useCloud = create<CloudState>(() => ({ status: 'local', message: null, savedAt: null }));
 
+export interface Invite {
+  email: string;
+  role: LinkRole;
+}
+
 export interface ShareSettings {
   visibility: Visibility;
   linkRole: LinkRole;
   password?: string;
+  /** invite-only: who may open it after logging in with that e-mail */
+  invites?: Invite[];
+  /** e-mail an invitation link to newly added invitees */
+  notify?: boolean;
 }
 
 export interface ShareMeta {
@@ -29,6 +38,10 @@ export interface ShareMeta {
   visibility: Visibility;
   linkRole: LinkRole;
   needsPassword: boolean;
+  /** invite-only share: the visitor must log in with an invited e-mail */
+  needsLogin?: boolean;
+  you?: string | null;
+  invited?: boolean;
   updatedAt: number;
   version: number;
   role: 'owner' | LinkRole | null;
@@ -65,14 +78,15 @@ export function payloadOf(p: Presentation, includeReport: boolean): Presentation
 
 export const getMeta = (id: string, link?: CloudLink) => api<ShareMeta>(`/${id}/meta`, { link });
 export const requestAccess = (id: string, password?: string) => api<{ token: string; role: LinkRole }>(`/${id}/access`, { method: 'POST', body: JSON.stringify({ password }) });
+export { ApiError };
 export const fetchShare = (id: string, link: Pick<CloudLink, 'ownerKey' | 'token'>) =>
-  api<{ presentation: Presentation; version: number; role: 'owner' | LinkRole; settings?: { visibility: Visibility; linkRole: LinkRole; hasPassword: boolean } }>(`/${id}`, { link });
+  api<{ presentation: Presentation; version: number; role: 'owner' | LinkRole; settings?: { visibility: Visibility; linkRole: LinkRole; hasPassword: boolean; invites?: Invite[] } }>(`/${id}`, { link });
 export const listPublic = () => api<{ items: { id: string; title: string; presenter: string; stepCount: number; updatedAt: number; linkRole: LinkRole }[] }>('/public');
 
 /** Create a share for the open presentation (caller becomes owner). */
-export async function shareCurrent(settings: ShareSettings, includeReport: boolean): Promise<CloudLink> {
+export async function shareCurrent(settings: ShareSettings, includeReport: boolean): Promise<CloudLink & { notified?: number; mailReady?: boolean }> {
   const p = useApp.getState().pres;
-  const r = await api<{ id: string; ownerKey: string; version: number; visibility: Visibility; linkRole: LinkRole }>('', {
+  const r = await api<{ id: string; ownerKey: string; version: number; visibility: Visibility; linkRole: LinkRole; notified?: number; mailReady?: boolean }>('', {
     method: 'POST',
     body: JSON.stringify({ presentation: payloadOf(p, includeReport), settings }),
   });
@@ -84,17 +98,17 @@ export async function shareCurrent(settings: ShareSettings, includeReport: boole
   watchCurrent();
   useCloud.setState({ status: 'saved', savedAt: Date.now(), message: null });
   if (useApp.getState().pres !== p) scheduleSave();
-  return link;
+  return { ...link, notified: r.notified, mailReady: r.mailReady };
 }
 
-export async function updateSettings(presId: string, settings: Partial<ShareSettings>, includeReport?: boolean): Promise<CloudLink> {
+export async function updateSettings(presId: string, settings: Partial<ShareSettings>, includeReport?: boolean): Promise<CloudLink & { notified?: number; mailReady?: boolean }> {
   const link = cloudOf(presId);
   if (!link || link.role !== 'owner') throw new Error('Yalnızca sahip değiştirebilir');
-  const r = await api<{ visibility: Visibility; linkRole: LinkRole }>(`/${link.shareId}/settings`, { method: 'PATCH', link, body: JSON.stringify(settings) });
+  const r = await api<{ visibility: Visibility; linkRole: LinkRole; notified?: number; mailReady?: boolean }>(`/${link.shareId}/settings`, { method: 'PATCH', link, body: JSON.stringify(settings) });
   const next: CloudLink = { ...link, visibility: r.visibility, linkRole: r.linkRole, includeReport: includeReport ?? link.includeReport };
   setCloud(presId, next);
   if (includeReport !== undefined && includeReport !== link.includeReport) scheduleSave(true);
-  return next;
+  return { ...next, notified: r.notified, mailReady: r.mailReady };
 }
 
 /** Owner deletes the server copy; the local presentation stays (private). */

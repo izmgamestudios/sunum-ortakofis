@@ -93,3 +93,15 @@ cd sunum-ortakofis && npm install && npm run dev
 ## Örnek sunum
 
 `examples/gamfed-fikir-gelistirme-ve-deger-onerisi.snmtdz` — GamFed Türkiye için “Fikir Geliştirme ve Değer Önerisi” (Hüseyin Bayer). Sunumlarım → İçe aktar ile aç.
+
+## E-postayla davetli paylaşım (Gmail SMTP)
+
+“📧 Yalnızca davet edilenler” paylaşımında izleyici, e-postasına gelen 6 haneli kodla giriş yapar. Kodların gönderilmesi için sunucuda proje klasörüne `.env` dosyası oluştur (git'e girmez, deploy'da silinmez):
+
+```bash
+cd ~/htdocs/sunum.ortakofis.org
+cp .env.example .env && nano .env        # SMTP_USER ve SMTP_PASS (Gmail uygulama şifresi)
+chmod 600 .env && pm2 restart teknodoz-sunum
+```
+
+Gmail uygulama şifresi: Google Hesabı → Güvenlik → 2 Adımlı Doğrulama → Uygulama şifreleri. `.env` yoksa üretimde giriş kodu gönderilmez (geliştirmede kod sunucu günlüğüne yazılır).

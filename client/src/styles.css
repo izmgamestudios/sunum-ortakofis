@@ -5285,3 +5285,9 @@ a.footer-link {
 .lib-pick-n { min-width: 20px; height: 20px; border-radius: 50%; background: var(--grad); color: #fff; font-size: 0.72rem; font-weight: 800; display: grid; place-items: center; }
 .lib-card.is-picked { outline: 2px solid var(--purple); }
 .lib-card .lib-top { padding-right: 52px; }
+
+/* ---------- invite-only sharing ---------- */
+.invite-box textarea { flex: 1; min-height: 44px; resize: vertical; }
+.invite-list { list-style: none; padding: 0; margin: 4px 0; display: grid; gap: 4px; max-height: 220px; overflow: auto; }
+.invite-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; padding: 4px 6px 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 0.9rem; }
+.code-input { font-size: 1.6rem; letter-spacing: 0.5em; text-align: center; font-variant-numeric: tabular-nums; }

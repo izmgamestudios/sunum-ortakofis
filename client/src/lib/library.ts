@@ -5,7 +5,7 @@ import type { Presentation } from '../types';
 import { normalizePresentation, uid } from './factory';
 import { useApp } from '../store';
 
-export type Visibility = 'private' | 'link' | 'public' | 'password';
+export type Visibility = 'private' | 'link' | 'public' | 'password' | 'invite';
 export type LinkRole = 'viewer' | 'editor';
 
 /** Credentials for a presentation stored on the server. Never part of exported files. */

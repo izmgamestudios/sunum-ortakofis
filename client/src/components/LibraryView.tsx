@@ -10,7 +10,7 @@ import { MergeDialog, SplitDialog } from './StepTools';
 
 type Tab = 'all' | 'private' | 'mine' | 'withme' | 'explore';
 
-const VIS_BADGE: Record<string, string> = { private: '🔒 Özel bulut', link: '🔗 Bağlantıyla', public: '🌍 Herkese açık', password: '🔑 Şifreli' };
+const VIS_BADGE: Record<string, string> = { private: '🔒 Özel bulut', link: '🔗 Bağlantıyla', public: '🌍 Herkese açık', password: '🔑 Şifreli', invite: '📧 Davetliler' };
 
 function rel(ts: number): string {
   const d = (Date.now() - ts) / 1000;

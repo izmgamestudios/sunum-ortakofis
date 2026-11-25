@@ -5,8 +5,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 
 import { readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Server } from 'socket.io';
+import { createAuth, inviteMail, normEmail, type Auth } from './auth.js';
 
-export type Visibility = 'private' | 'link' | 'public' | 'password';
+export type Visibility = 'private' | 'link' | 'public' | 'password' | 'invite';
 export type LinkRole = 'viewer' | 'editor';
 export type Role = 'owner' | LinkRole;
 
@@ -20,6 +21,8 @@ interface ShareMeta {
   ownerKeyHash: string;
   passwordHash?: string;
   passwordSalt?: string;
+  /** invite-only: who may open it (logged in with that e-mail) and with which role */
+  invites?: Invite[];
   /** bumped on every settings change → invalidates issued tokens */
   gen: number;
   version: number;
@@ -28,10 +31,16 @@ interface ShareMeta {
   bytes: number;
 }
 
+interface Invite {
+  email: string;
+  role: LinkRole;
+}
+
+const MAX_INVITES = 200;
 const MAX_SHARES = 5000;
 const MAX_TOTAL_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const VIS: Visibility[] = ['private', 'link', 'public', 'password'];
+const VIS: Visibility[] = ['private', 'link', 'public', 'password', 'invite'];
 const ROLES: LinkRole[] = ['viewer', 'editor'];
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -55,7 +64,7 @@ function validPresentation(p: unknown): p is { title?: string; presenter?: strin
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max) : '');
 
-export function createShareRouter(io: Server, dataDir: string): Router {
+export function createShareRouter(io: Server, dataDir: string, isProd = false): { router: Router; auth: Auth } {
   const dir = path.join(dataDir, 'shares');
   mkdirSync(dir, { recursive: true, mode: 0o700 });
 
@@ -69,6 +78,8 @@ export function createShareRouter(io: Server, dataDir: string): Router {
       writeFileSync(secretFile, secret, { mode: 0o600 });
     }
   }
+
+  const auth = createAuth(secret, isProd);
 
   // in-memory meta index (content stays on disk)
   const metas = new Map<string, ShareMeta>();
@@ -155,6 +166,17 @@ export function createShareRouter(io: Server, dataDir: string): Router {
       m.passwordHash = scryptSync(body.password, m.passwordSalt, 32).toString('hex');
     }
     if (m.visibility === 'password' && !m.passwordHash) return 'Şifreli paylaşım için şifre gerekli';
+    if (body.invites !== undefined) {
+      if (!Array.isArray(body.invites) || body.invites.length > MAX_INVITES) return `En fazla ${MAX_INVITES} davetli eklenebilir`;
+      const seen = new Map<string, Invite>();
+      for (const raw of body.invites as { email?: unknown; role?: unknown }[]) {
+        const email = normEmail(raw?.email);
+        if (!email) return `Geçersiz e-posta: ${String(raw?.email ?? '').slice(0, 80)}`;
+        seen.set(email, { email, role: ROLES.includes(raw?.role as LinkRole) ? (raw.role as LinkRole) : m.linkRole });
+      }
+      m.invites = [...seen.values()];
+    }
+    if (m.visibility === 'invite' && !m.invites?.length) return 'Davetli paylaşım için en az bir e-posta gir';
     m.gen++;
     return null;
   }
@@ -204,7 +226,15 @@ export function createShareRouter(io: Server, dataDir: string): Router {
     await atomicWrite(dataPath(id), json);
     await saveMeta(m);
     metas.set(id, m);
-    res.status(201).json({ id, ownerKey, version: m.version, visibility: m.visibility, linkRole: m.linkRole });
+    let notified = 0;
+    if (m.visibility === 'invite' && settings?.notify === true && auth.mailReady) {
+      const link = `${req.protocol}://${req.get('host')}/?s=${m.id}`;
+      for (const inv of (m.invites ?? []).slice(0, 50)) {
+        const { text, html } = inviteMail(m.title, m.presenter, link, inv.role);
+        await auth.send(inv.email, `Davet: ${m.title}`, text, html).then((ok) => ok && notified++).catch(() => undefined);
+      }
+    }
+    res.status(201).json({ id, ownerKey, version: m.version, visibility: m.visibility, linkRole: m.linkRole, notified, mailReady: auth.mailReady });
   });
 
   // meta (no content) — private shares are invisible to everyone but the owner
@@ -212,7 +242,22 @@ export function createShareRouter(io: Server, dataDir: string): Router {
     const m = metas.get(req.params.id);
     const role = m ? roleOf(req, m) : null;
     if (!m || (m.visibility === 'private' && role !== 'owner')) return res.status(404).json({ error: 'Sunum bulunamadı ya da özel.' });
-    res.json({ id: m.id, title: m.title, presenter: m.presenter, stepCount: m.stepCount, visibility: m.visibility, linkRole: m.linkRole, needsPassword: m.visibility === 'password', updatedAt: m.updatedAt, version: m.version, role });
+    const you = m.visibility === 'invite' ? auth.emailOf(req.headers.cookie) : null;
+    res.json({
+      id: m.id,
+      title: m.title,
+      presenter: m.presenter,
+      stepCount: m.stepCount,
+      visibility: m.visibility,
+      linkRole: m.linkRole,
+      needsPassword: m.visibility === 'password',
+      needsLogin: m.visibility === 'invite',
+      you,
+      invited: you ? !!m.invites?.some((i) => i.email === you) : undefined,
+      updatedAt: m.updatedAt,
+      version: m.version,
+      role,
+    });
   });
 
   // exchange (optional) password for a signed link token
@@ -224,6 +269,14 @@ export function createShareRouter(io: Server, dataDir: string): Router {
       const pw = typeof req.body?.password === 'string' ? req.body.password : '';
       const hash = m.passwordSalt ? scryptSync(pw, m.passwordSalt, 32).toString('hex') : '';
       if (!m.passwordHash || !safeEq(hash, m.passwordHash)) return res.status(401).json({ error: 'Şifre yanlış.' });
+    }
+    if (m.visibility === 'invite') {
+      const email = auth.emailOf(req.headers.cookie);
+      if (!email) return res.status(401).json({ error: 'Bu sunum yalnızca davet edilenlere açık. E-postanla giriş yap.', needsLogin: true });
+      if (limited(`inv:${ip(req)}`, 30, 10 * 60 * 1000)) return res.status(429).json({ error: 'Çok fazla deneme.' });
+      const inv = m.invites?.find((i) => i.email === email);
+      if (!inv) return res.status(403).json({ error: `Bu sunum ${email} ile paylaşılmamış.`, notInvited: true });
+      return res.json({ token: sign(m.id, inv.role, m.gen), role: inv.role });
     }
     res.json({ token: sign(m.id, m.linkRole, m.gen), role: m.linkRole });
   });
@@ -238,7 +291,7 @@ export function createShareRouter(io: Server, dataDir: string): Router {
       presentation,
       version: m.version,
       role,
-      settings: role === 'owner' ? { visibility: m.visibility, linkRole: m.linkRole, hasPassword: !!m.passwordHash } : undefined,
+      settings: role === 'owner' ? { visibility: m.visibility, linkRole: m.linkRole, hasPassword: !!m.passwordHash, invites: m.invites ?? [] } : undefined,
     });
   });
 
@@ -274,13 +327,23 @@ export function createShareRouter(io: Server, dataDir: string): Router {
   r.patch('/:id/settings', async (req, res) => {
     const m = metas.get(req.params.id);
     if (!m || roleOf(req, m) !== 'owner') return res.status(m ? 403 : 404).json({ error: 'Yalnızca sunum sahibi değiştirebilir.' });
+    const before = new Set((m.invites ?? []).map((i) => i.email));
     const copy = { ...m };
     const err = applySettings(copy, req.body ?? {});
     if (err) return res.status(400).json({ error: err });
     Object.assign(m, copy);
     await queued(m.id, () => saveMeta(m));
     io.to(`share:${m.id}`).emit('share:settings', { id: m.id });
-    res.json({ visibility: m.visibility, linkRole: m.linkRole, hasPassword: !!m.passwordHash });
+    const fresh = m.visibility === 'invite' && req.body?.notify === true ? (m.invites ?? []).filter((i) => !before.has(i.email)) : [];
+    let notified = 0;
+    if (fresh.length && auth.mailReady && !limited(`notify:${m.id}`, 10, 60 * 60 * 1000)) {
+      const link = `${req.protocol}://${req.get('host')}/?s=${m.id}`;
+      for (const inv of fresh.slice(0, 50)) {
+        const { text, html } = inviteMail(m.title, m.presenter, link, inv.role);
+        await auth.send(inv.email, `Davet: ${m.title}`, text, html).then((ok) => ok && notified++).catch(() => undefined);
+      }
+    }
+    res.json({ visibility: m.visibility, linkRole: m.linkRole, hasPassword: !!m.passwordHash, invites: m.invites ?? [], notified, mailReady: auth.mailReady });
   });
 
   // delete (owner only)
@@ -345,5 +408,5 @@ export function createShareRouter(io: Server, dataDir: string): Router {
     socket.on('share:unwatch', (p: { id?: string }) => typeof p?.id === 'string' && socket.leave(`share:${p.id}`));
   });
 
-  return r;
+  return { router: r, auth };
 }

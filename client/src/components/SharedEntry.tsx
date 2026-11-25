@@ -7,6 +7,7 @@ import { normalizePresentation } from '../lib/factory';
 import { entryByShare, openPresentation } from '../lib/library';
 import { fetchShare, getMeta, importAsEditor, requestAccess, type ShareMeta } from '../lib/cloud';
 import { getSocket } from '../lib/socket';
+import { logout, requestCode, verifyCode } from '../lib/auth';
 import { visibleElements } from '../lib/canvasGroups';
 import { applyView, BOARD_H, BOARD_W, drawElement } from '../lib/canvasDraw';
 import { BetaBadge, Logo } from './Header';
@@ -213,11 +214,18 @@ function SharedHeader() {
   );
 }
 
-type Phase = { k: 'loading' } | { k: 'error'; msg: string } | { k: 'password'; meta: ShareMeta; err?: string } | { k: 'viewer'; meta: ShareMeta; pres: Presentation; token: string };
+type Phase =
+  | { k: 'loading' }
+  | { k: 'error'; msg: string }
+  | { k: 'password'; meta: ShareMeta; err?: string }
+  | { k: 'login'; meta: ShareMeta; stage: 'email' | 'code'; email: string; err?: string; dev?: boolean }
+  | { k: 'notinvited'; meta: ShareMeta; email: string }
+  | { k: 'viewer'; meta: ShareMeta; pres: Presentation; token: string };
 
 export function SharedEntry({ shareId, onOpenApp }: { shareId: string; onOpenApp: () => void }) {
   const [phase, setPhase] = useState<Phase>({ k: 'loading' });
   const [pw, setPw] = useState('');
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState<LivePos | null>(null);
 
@@ -251,6 +259,10 @@ export function SharedEntry({ shareId, onOpenApp }: { shareId: string; onOpenApp
       try {
         const meta = await getMeta(shareId);
         if (meta.needsPassword) return setPhase({ k: 'password', meta });
+        if (meta.needsLogin) {
+          if (!meta.you) return setPhase({ k: 'login', meta, stage: 'email', email: '' });
+          if (!meta.invited) return setPhase({ k: 'notinvited', meta, email: meta.you });
+        }
         const acc = await requestAccess(shareId);
         await proceed(meta, acc.token, acc.role);
       } catch (e) {
@@ -284,6 +296,41 @@ export function SharedEntry({ shareId, onOpenApp }: { shareId: string; onOpenApp
     }
   };
 
+  /* ---------- invite-only: e-mail code login ---------- */
+  const sendCode = async () => {
+    if (phase.k !== 'login') return;
+    setBusy(true);
+    try {
+      const r = await requestCode(phase.email);
+      setCode('');
+      setPhase({ ...phase, stage: 'code', err: undefined, dev: r.dev });
+    } catch (e) {
+      setPhase({ ...phase, err: e instanceof Error ? e.message : 'Kod gönderilemedi' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const checkCode = async () => {
+    if (phase.k !== 'login') return;
+    setBusy(true);
+    try {
+      await verifyCode(phase.email, code);
+      const meta = await getMeta(shareId);
+      if (!meta.invited) return setPhase({ k: 'notinvited', meta, email: phase.email });
+      const acc = await requestAccess(shareId);
+      await proceed(meta, acc.token, acc.role);
+    } catch (e) {
+      setPhase({ ...phase, err: e instanceof Error ? e.message : 'Giriş yapılamadı' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const switchAccount = async () => {
+    await logout().catch(() => undefined);
+    const meta = phase.k === 'notinvited' || phase.k === 'login' ? phase.meta : null;
+    if (meta) setPhase({ k: 'login', meta, stage: 'email', email: '' });
+  };
+
   const submitPw = async () => {
     if (phase.k !== 'password') return;
     setBusy(true);
@@ -313,6 +360,75 @@ export function SharedEntry({ shareId, onOpenApp }: { shareId: string; onOpenApp
               <a className="btn btn-primary" href="/">
                 Teknodoz Sunum’a git
               </a>
+            </>
+          )}
+          {phase.k === 'login' && (
+            <>
+              <p className="eyebrow">📧 Davetli sunum</p>
+              <h1>{phase.meta.title}</h1>
+              <p className="muted small">
+                {phase.meta.presenter && <>🎤 {phase.meta.presenter} · </>}
+                {phase.meta.stepCount} adım · yalnızca davet edilen e-postalar görebilir
+              </p>
+              {phase.stage === 'email' ? (
+                <>
+                  <input
+                    className="input"
+                    type="email"
+                    autoFocus
+                    autoComplete="email"
+                    value={phase.email}
+                    placeholder="E-posta adresin"
+                    onChange={(e) => setPhase({ ...phase, email: e.target.value })}
+                    onKeyDown={(e) => e.key === 'Enter' && phase.email && sendCode()}
+                    aria-label="E-posta"
+                  />
+                  <button className="btn btn-primary btn-lg" disabled={!phase.email || busy} onClick={sendCode}>
+                    {busy ? '⏳' : 'Kod gönder →'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="small">
+                    <b>{phase.email}</b> adresine 6 haneli kod gönderdik.{' '}
+                    <button className="link-btn" onClick={() => setPhase({ ...phase, stage: 'email', err: undefined })}>
+                      değiştir
+                    </button>
+                  </p>
+                  {phase.dev && <p className="warn small">Geliştirme modu: e-posta ayarı yok, kod sunucu günlüğünde.</p>}
+                  <input
+                    className="input code-input"
+                    inputMode="numeric"
+                    autoFocus
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={code}
+                    placeholder="••••••"
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onKeyDown={(e) => e.key === 'Enter' && code.length === 6 && checkCode()}
+                    aria-label="6 haneli kod"
+                  />
+                  <button className="btn btn-primary btn-lg" disabled={code.length !== 6 || busy} onClick={checkCode}>
+                    {busy ? '⏳' : 'Giriş yap ve aç →'}
+                  </button>
+                  <button className="link-btn small" onClick={sendCode} disabled={busy}>
+                    Kodu yeniden gönder
+                  </button>
+                </>
+              )}
+              {phase.err && <p className="error">{phase.err}</p>}
+            </>
+          )}
+          {phase.k === 'notinvited' && (
+            <>
+              <p className="eyebrow">📧 Davetli sunum</p>
+              <h1>{phase.meta.title}</h1>
+              <p className="muted">
+                Bu sunum <b>{phase.email}</b> ile paylaşılmamış. Sunum sahibinden seni eklemesini iste ya da davet edilen e-postayla giriş yap.
+              </p>
+              <button className="btn btn-primary" onClick={switchAccount}>
+                Başka e-postayla giriş yap
+              </button>
             </>
           )}
           {phase.k === 'password' && (

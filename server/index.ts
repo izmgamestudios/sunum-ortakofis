@@ -14,6 +14,9 @@ import { createShareRouter } from './shares.js';
 const PORT = Number(process.env.PORT ?? 3001);
 /** Behind a reverse proxy (CloudPanel/nginx) bind to 127.0.0.1 so the app port is not publicly reachable. */
 const HOST = process.env.HOST ?? '0.0.0.0';
+// optional secrets (SMTP for e-mail login codes, …) from the project's .env — git-ignored, survives deploys
+const ENV_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env');
+if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
 const IS_PROD = process.env.NODE_ENV === 'production';
 const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_MSG_LEN = 500;
@@ -148,6 +151,8 @@ app.use(compression());
 
 // shared presentations API — registered before the SPA fallback; the router is attached once socket.io exists
 let shareRouter: Router | null = null;
+let authRouter: Router | null = null;
+app.use('/api/auth', (req, res, next) => (authRouter ? authRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
 app.use('/api/shares', (req, res, next) => (shareRouter ? shareRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
 app.use('/api', (_req, res, next) => (_req.path === '/health' ? next() : res.status(404).json({ error: 'Bulunamadı' })));
 
@@ -175,7 +180,9 @@ const io = new Server(httpServer, {
   maxHttpBufferSize: 2_500_000,
   cors: IS_PROD ? undefined : { origin: true },
 });
-shareRouter = createShareRouter(io, DATA_DIR);
+const shares = createShareRouter(io, DATA_DIR, IS_PROD);
+shareRouter = shares.router;
+authRouter = shares.auth.router;
 
 
 io.on('connection', (socket: Socket) => {

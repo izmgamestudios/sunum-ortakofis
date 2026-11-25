@@ -4,13 +4,15 @@ import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { useApp } from '../store';
 import { useLibrary, type LinkRole, type Visibility } from '../lib/library';
-import { shareCurrent, shareUrl, unshare, updateSettings } from '../lib/cloud';
+import { fetchShare, shareCurrent, shareUrl, unshare, updateSettings, type Invite } from '../lib/cloud';
+import { parseEmails } from '../lib/auth';
 
 const VIS: { id: Visibility; icon: string; title: string; desc: string }[] = [
   { id: 'private', icon: '🔒', title: 'Özel', desc: 'Yalnızca sen. Bağlantı çalışmaz; bulut kopyası sende kalır.' },
   { id: 'link', icon: '🔗', title: 'Bağlantıya sahip olanlar', desc: 'Listelenmez; bağlantıyı bilen herkes açabilir.' },
   { id: 'public', icon: '🌍', title: 'Herkese açık', desc: 'Keşfet sayfasında listelenir, herkes açabilir.' },
   { id: 'password', icon: '🔑', title: 'Şifreli', desc: 'Bağlantı + şifre gerekir.' },
+  { id: 'invite', icon: '📧', title: 'Yalnızca davet edilenler', desc: 'Sadece girdiğin e-postalar, o e-postayla giriş yapınca görebilir.' },
 ];
 
 const ROLES: { id: LinkRole; icon: string; title: string; desc: string }[] = [
@@ -25,6 +27,24 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
   const [linkRole, setLinkRole] = useState<LinkRole>(link?.linkRole ?? 'viewer');
   const [password, setPassword] = useState('');
   const [includeReport, setIncludeReport] = useState(link?.includeReport ?? false);
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [badEmails, setBadEmails] = useState<string[]>([]);
+  const [notify, setNotify] = useState(true);
+  const [info, setInfo] = useState<string | null>(null);
+  // owner: load the current invite list
+  useEffect(() => {
+    if (!link || link.role !== 'owner') return;
+    fetchShare(link.shareId, link)
+      .then((r) => setInvites(r.settings?.invites ?? []))
+      .catch(() => undefined);
+  }, [link?.shareId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const addEmails = () => {
+    const { valid, invalid } = parseEmails(emailDraft);
+    setBadEmails(invalid);
+    if (valid.length) setInvites((cur) => [...cur, ...valid.filter((e) => !cur.some((c) => c.email === e)).map((email) => ({ email, role: linkRole }))]);
+    setEmailDraft(invalid.join(', '));
+  };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -52,10 +72,17 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const settings = { visibility, linkRole, password: password || undefined };
-      if (!link) await shareCurrent(settings, includeReport);
-      else await updateSettings(pres.id, settings, includeReport);
+      const settings = { visibility, linkRole, password: password || undefined, ...(visibility === 'invite' ? { invites, notify } : {}) };
+      const r = !link ? await shareCurrent(settings, includeReport) : await updateSettings(pres.id, settings, includeReport);
       setPassword('');
+      if (visibility === 'invite')
+        setInfo(
+          notify && r.mailReady === false
+            ? '✅ Kaydedildi. Davet e-postası gönderilemedi (sunucuda e-posta ayarı yok) — bağlantıyı kendin ilet.'
+            : notify && r.notified
+              ? `✅ Kaydedildi · ${r.notified} kişiye davet e-postası gönderildi.`
+              : '✅ Kaydedildi.',
+        );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kaydedilemedi');
     } finally {
@@ -116,7 +143,58 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
                   <input className="input" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••" />
                 </label>
               )}
-              {visibility !== 'private' && (
+              {visibility === 'invite' && (
+                <fieldset className="fs invite-box">
+                  <legend>📧 Davet edilenler ({invites.length})</legend>
+                  <div className="row gap-s">
+                    <textarea
+                      className="input"
+                      rows={2}
+                      value={emailDraft}
+                      onChange={(e) => setEmailDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          addEmails();
+                        }
+                      }}
+                      placeholder="ad@ornek.com — tek tek ya da toplu yapıştır (virgül, boşluk ya da satırla ayır)"
+                      aria-label="Davet edilecek e-postalar"
+                    />
+                    <button className="btn" onClick={addEmails} disabled={!emailDraft.trim()}>
+                      ＋ Ekle
+                    </button>
+                  </div>
+                  {badEmails.length > 0 && <p className="error small">Geçersiz: {badEmails.join(', ')}</p>}
+                  {invites.length > 0 && (
+                    <ul className="invite-list">
+                      {invites.map((inv) => (
+                        <li key={inv.email}>
+                          <span className="truncate">{inv.email}</span>
+                          <select
+                            className="seg-select"
+                            value={inv.role}
+                            onChange={(e) => setInvites((cur) => cur.map((c) => (c.email === inv.email ? { ...c, role: e.target.value as LinkRole } : c)))}
+                            aria-label={`${inv.email} yetkisi`}
+                          >
+                            <option value="viewer">👀 İzler</option>
+                            <option value="editor">✏️ Düzenler</option>
+                          </select>
+                          <button className="icon-btn icon-btn--ghost" onClick={() => setInvites((cur) => cur.filter((c) => c.email !== inv.email))} aria-label={`${inv.email} kaldır`}>
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <label className="switch small">
+                    <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+                    <span>Yeni eklenenlere davet e-postası gönder</span>
+                  </label>
+                  <p className="muted small">Bağlantıyı açan kişi e-postasına gelen 6 haneli kodla giriş yapar; listede değilse sunumu göremez. Birini çıkarınca erişimi hemen kapanır.</p>
+                </fieldset>
+              )}
+              {visibility !== 'private' && visibility !== 'invite' && (
                 <fieldset className="fs">
                   <legend>Bağlantıyla gelenler ne yapabilir?</legend>
                   <div className="choice-grid choice-grid--2">
@@ -138,8 +216,9 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
                 <span>Rapor verilerini de paylaş (notlar, anonim sohbet, konuşma dökümü, skorlar)</span>
               </label>
               {error && <p className="error small">{error}</p>}
+              {info && <p className="small">{info}</p>}
               <div className="row gap-s wrap">
-                <button className="btn btn-primary" onClick={save} disabled={busy || (needsPw && password.length < 4)}>
+                <button className="btn btn-primary" onClick={save} disabled={busy || (needsPw && password.length < 4) || (visibility === 'invite' && !invites.length)}>
                   {busy ? '⏳' : link ? '💾 Ayarları kaydet' : '☁️ Paylaş ve bağlantı oluştur'}
                 </button>
                 {link && (
@@ -160,8 +239,8 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
                   <canvas ref={qrRef} className="share-qr" aria-label="Paylaşım QR kodu" />
                   <div className="stack">
                     <p className="small muted">
-                      {VIS.find((v) => v.id === link.visibility)?.icon} {VIS.find((v) => v.id === link.visibility)?.title} · {ROLES.find((r) => r.id === link.linkRole)?.icon}{' '}
-                      {ROLES.find((r) => r.id === link.linkRole)?.title}
+                      {VIS.find((v) => v.id === link.visibility)?.icon} {VIS.find((v) => v.id === link.visibility)?.title} ·{' '}
+                      {link.visibility === 'invite' ? `${invites.length} davetli (yetki kişi bazında)` : `${ROLES.find((r) => r.id === link.linkRole)?.icon} ${ROLES.find((r) => r.id === link.linkRole)?.title}`}
                     </p>
                     <div className="row gap-s">
                       <input className="input" readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Paylaşım bağlantısı" />
