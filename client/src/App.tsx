@@ -4,6 +4,7 @@ import { hydrate, useApp } from './store';
 import { Shell } from './components/Shell';
 import { SetupView } from './components/SetupView';
 import { initCloudSync } from './lib/cloud';
+import { initAccount } from './lib/account';
 
 const LiveView = lazy(() => import('./components/LiveView').then((m) => ({ default: m.LiveView })));
 const ReportView = lazy(() => import('./components/ReportView').then((m) => ({ default: m.ReportView })));
@@ -30,7 +31,10 @@ function PresenterApp() {
   const view = useApp((s) => s.view);
 
   useEffect(() => {
-    void hydrate().then(initCloudSync);
+    void hydrate().then(() => {
+      initCloudSync();
+      void initAccount();
+    });
   }, []);
 
   if (!hydrated) return <Loading />;

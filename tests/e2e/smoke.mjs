@@ -156,6 +156,47 @@ try {
     expect((await page.locator('.timeline-item').count()) === picked, 'merged step count mismatch');
   });
 
+  await check('account sync: move to account on device A, open on device B, live update back', async () => {
+    const email = 'senkron@ornek.com';
+    const login = async (p) => {
+      await p.locator('.account-chip').first().click();
+      await p.getByLabel('E-posta').fill(email);
+      await p.getByRole('button', { name: /Kod gönder/ }).click();
+      const before = [...serverLog.matchAll(/mail to senkron@ornek\.com: Giriş kodun: (\d{6})/g)].length;
+      let code = '';
+      for (let i = 0; i < 40 && !code; i++) {
+        const all = [...serverLog.matchAll(/mail to senkron@ornek\.com: Giriş kodun: (\d{6})/g)];
+        if (all.length > before - 1 && all.length) code = all[all.length - 1][1];
+        else await new Promise((r) => setTimeout(r, 150));
+      }
+      await p.getByLabel('6 haneli kod').fill(code);
+      await p.getByRole('button', { name: /^Giriş yap$/ }).click();
+    };
+    const A = await newPage();
+    await A.goto(BASE);
+    await A.waitForSelector('.hero-title');
+    await A.locator('.hero-title').fill('Senkron testi');
+    await A.waitForTimeout(600);
+    await login(A);
+    await A.getByRole('button', { name: /Hesabıma taşı/ }).click();
+    await A.waitForTimeout(1500);
+    const B = await newPage();
+    await B.goto(BASE);
+    await B.waitForSelector('.hero-title');
+    await login(B);
+    const later = B.getByRole('button', { name: /Şimdilik değil/ });
+    await later.waitFor({ timeout: 5000 }).catch(() => undefined);
+    if (await later.count()) await later.click();
+    await B.getByRole('button', { name: 'Sunumlarım' }).first().click();
+    const card = B.locator('.lib-card', { hasText: 'Senkron testi' });
+    await card.waitFor({ timeout: 8000 });
+    await card.getByRole('button', { name: 'Aç' }).click();
+    await B.waitForTimeout(800);
+    expect((await B.locator('.hero-title').inputValue()) === 'Senkron testi', 'device B did not get the presentation');
+    await B.locator('.hero-title').fill('Senkron testi (B)');
+    await A.waitForFunction(() => document.querySelector('.hero-title')?.value === 'Senkron testi (B)', null, { timeout: 10000 });
+  });
+
   await check('audience page loads with a room code', async () => {
     const a = await newPage({ viewport: { width: 390, height: 844 } });
     await a.goto(`${BASE}/?join=ABC123`);

@@ -1,5 +1,6 @@
 // client/src/components/LibraryView.tsx — "Sunumlarım": private / shared by me / shared with me / public gallery
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { SyncBanner } from './Account';
 import { useApp } from '../store';
 import { duplicatePresentation, openPresentation, removePresentation, useLibrary, type LibEntry } from '../lib/library';
 import { importWithOwnerKey, listPublic, unshare } from '../lib/cloud';
@@ -79,7 +80,7 @@ export function LibraryView() {
 
   const remove = async (e: LibEntry) => {
     const owner = e.cloud?.role === 'owner';
-    if (!confirm(`“${e.title}” bu cihazdan silinsin mi?${owner ? '\n\nPaylaşımı da sunucudan kaldırmak için önce “Paylaşımı kaldır”ı kullan; aksi halde bağlantı çalışmaya devam eder ve sahip anahtarı bu cihazdan silinir.' : ''}`)) return;
+    if (!confirm(`“${e.title}” ${e.account ? 'bu cihazdan ve hesabından (tüm cihazlarından) ' : 'bu cihazdan '}silinsin mi?${owner ? '\n\nPaylaşımı da sunucudan kaldırmak için önce “Paylaşımı kaldır”ı kullan; aksi halde bağlantı çalışmaya devam eder ve sahip anahtarı bu cihazdan silinir.' : ''}`)) return;
     await removePresentation(e.id);
     flash('Silindi');
   };
@@ -137,6 +138,8 @@ export function LibraryView() {
         </div>
       </header>
 
+      <SyncBanner />
+
       <div className="subtabs" role="tablist">
         {TABS.map(([t, l]) => (
           <button key={t} role="tab" aria-selected={tab === t} className={`subtab ${tab === t ? 'is-active' : ''}`} onClick={() => setTab(t)}>
@@ -178,6 +181,11 @@ export function LibraryView() {
                   <span className="lib-badge">{e.cloud ? (e.cloud.role === 'editor' ? '✏️ Düzenleyici' : VIS_BADGE[e.cloud.visibility]) : '🔒 Yalnızca bu cihaz'}</span>
                   {e.cloud?.role === 'owner' && e.cloud.visibility !== 'private' && <span className="lib-badge lib-badge--role">{e.cloud.linkRole === 'editor' ? '✏️ link: düzenle' : '👀 link: izle'}</span>}
                   {e.id === currentId && <span className="lib-badge lib-badge--now">● Açık</span>}
+                  {e.account && (
+                    <span className="lib-badge lib-badge--acct" title={e.account.remoteOnly ? 'Hesabında; açınca indirilir' : e.account.stale ? 'Başka cihazda güncellendi; açınca güncellenir' : 'Hesabınla senkron'}>
+                      {e.account.remoteOnly ? '☁️⬇ Hesapta' : e.account.stale ? '☁️ yeni sürüm' : '☁️'}
+                    </span>
+                  )}
                 </div>
                 <h3 className="truncate">{e.title}</h3>
                 <p className="small muted">

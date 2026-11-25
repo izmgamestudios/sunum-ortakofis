@@ -7,7 +7,7 @@
 ## ✅ Tamamlanan (beta 0.4)
 Zaman kutulu adımlar · tek tuval · 66 çerçeve ve iş kanvası · şablonlar · canlı oda · dinleme/döküm · ses ve ekran kaydı · rapor + SWOT · giriş/kapanış · davetli paylaşım (e-posta kodu) · birleştir/ayır · 19 geçiş etkinliği · CI + gece yedeği.
 
-## Sprint 1 — Hesapla senkron “Sunumlarım”
+## ✅ Sprint 1 — Hesapla senkron “Sunumlarım” (tamamlandı)
 - E-postayla giriş yapan kullanıcı → sunumları sunucuda hesabına bağlı; her cihazda aynı liste.
 - Yerel (girişsiz) kullanım aynen devam; ilk girişte “bu cihazdaki sunumları hesabıma taşı”.
 - Sahip anahtarı yerine hesap sahipliği (eski anahtarlar geçerli kalır).

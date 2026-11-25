@@ -1,5 +1,6 @@
 // client/src/components/Shell.tsx
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AccountChip } from './Account';
 import { RecordConsent } from './Recordings';
 import { useApp } from '../store';
 import { useTheme, type ThemeMode } from '../lib/theme';
@@ -339,6 +340,7 @@ function SiteHeader() {
         </nav>
 
         <div className="header-right">
+          <AccountChip />
           <CloudChip />
           <button className="btn btn-ghost header-share" onClick={() => setShareOpen(true)} title="Paylaş: özel / bağlantıyla / herkese açık / şifreli">
             🔗 <span className="hide-md">Paylaş</span>

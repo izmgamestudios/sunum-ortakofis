@@ -64,7 +64,7 @@ function validPresentation(p: unknown): p is { title?: string; presenter?: strin
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max) : '');
 
-export function createShareRouter(io: Server, dataDir: string, isProd = false): { router: Router; auth: Auth } {
+export function createShareRouter(io: Server, dataDir: string, isProd = false): { router: Router; auth: Auth; secret: string } {
   const dir = path.join(dataDir, 'shares');
   mkdirSync(dir, { recursive: true, mode: 0o700 });
 
@@ -408,5 +408,5 @@ export function createShareRouter(io: Server, dataDir: string, isProd = false): 
     socket.on('share:unwatch', (p: { id?: string }) => typeof p?.id === 'string' && socket.leave(`share:${p.id}`));
   });
 
-  return { router: r, auth };
+  return { router: r, auth, secret };
 }

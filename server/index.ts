@@ -10,6 +10,7 @@ import { existsSync } from 'node:fs';
 import { Server, type Socket } from 'socket.io';
 import type { Router } from 'express';
 import { createShareRouter } from './shares.js';
+import { createUserLib } from './userlib.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** Behind a reverse proxy (CloudPanel/nginx) bind to 127.0.0.1 so the app port is not publicly reachable. */
@@ -155,6 +156,8 @@ app.use(compression());
 // shared presentations API — registered before the SPA fallback; the router is attached once socket.io exists
 let shareRouter: Router | null = null;
 let authRouter: Router | null = null;
+let meRouter: Router | null = null;
+app.use('/api/me', (req, res, next) => (meRouter ? meRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
 app.use('/api/auth', (req, res, next) => (authRouter ? authRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
 app.use('/api/shares', (req, res, next) => (shareRouter ? shareRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
 app.use('/api', (_req, res, next) => (_req.path === '/health' ? next() : res.status(404).json({ error: 'Bulunamadı' })));
@@ -186,6 +189,7 @@ const io = new Server(httpServer, {
 const shares = createShareRouter(io, DATA_DIR, IS_PROD);
 shareRouter = shares.router;
 authRouter = shares.auth.router;
+meRouter = createUserLib(io, DATA_DIR, shares.auth, shares.secret);
 
 
 io.on('connection', (socket: Socket) => {

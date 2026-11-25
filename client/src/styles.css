@@ -5327,3 +5327,16 @@ a.footer-link {
 .break-group-title { margin: 4px 0 0; font-size: 0.78rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .pill-sec { margin-left: 6px; font-size: 0.68rem; opacity: 0.7; }
 .break-presets { align-items: center; }
+
+/* ---------- account & sync ---------- */
+.account-wrap { position: relative; }
+.account-chip.is-syncing { color: var(--blue); }
+.account-chip.is-error { color: var(--danger); }
+.account-chip .truncate { max-width: 140px; }
+.account-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; width: 260px; display: flex; flex-direction: column; gap: 6px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-s); box-shadow: var(--shadow); }
+.account-menu p { margin: 0; overflow-wrap: anywhere; }
+.login-modal { max-width: 460px; }
+.sync-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-radius: var(--radius-s); border: 1px dashed var(--border); background: var(--surface); }
+.sync-banner.is-on { border-style: solid; border-color: color-mix(in srgb, var(--blue) 40%, var(--border)); background: color-mix(in srgb, var(--blue) 6%, var(--surface)); }
+.sync-banner.is-error { border-color: var(--danger); }
+.lib-badge--acct { background: color-mix(in srgb, var(--blue) 12%, var(--surface)); }

@@ -21,6 +21,15 @@ export interface CloudLink {
   includeReport: boolean;
 }
 
+/** link to the signed-in account's synced library */
+export interface AccountLink {
+  version: number;
+  /** content only on the server so far (fetched on open) */
+  remoteOnly?: boolean;
+  /** a newer version exists on the server */
+  stale?: boolean;
+}
+
 export interface LibEntry {
   id: string;
   title: string;
@@ -29,7 +38,14 @@ export interface LibEntry {
   createdAt: number;
   updatedAt: number;
   cloud?: CloudLink;
+  account?: AccountLink;
 }
+
+/** account sync plugs in here (keeps library.ts free of network code) */
+export const libraryHooks: {
+  fetchRemote?: (id: string) => Promise<{ presentation: Presentation; version: number } | null>;
+  deleteRemote?: (id: string) => Promise<void>;
+} = {};
 
 const LIB_KEY = 'teknodoz-sunum:library';
 const presKey = (id: string) => `teknodoz-sunum:pres:${id}`;
@@ -51,6 +67,7 @@ const entryFor = (p: Presentation, prev?: LibEntry): LibEntry => ({
   createdAt: prev?.createdAt ?? p.createdAt ?? Date.now(),
   updatedAt: p.updatedAt ?? Date.now(),
   cloud: prev?.cloud,
+  account: prev?.account,
 });
 
 /** Called once from hydrate(): loads the index and migrates the current (pre-library) presentation into it. */
@@ -83,6 +100,16 @@ export async function loadPresentation(id: string): Promise<Presentation | null>
 export async function openPresentation(id: string): Promise<boolean> {
   const cur = useApp.getState().pres;
   await savePresentation(cur);
+  // synced from another device → download the latest version first
+  const entry = useLibrary.getState().entries.find((e) => e.id === id);
+  if (entry?.account && (entry.account.remoteOnly || entry.account.stale) && libraryHooks.fetchRemote) {
+    const r = await libraryHooks.fetchRemote(id).catch(() => null);
+    if (r) {
+      const fresh = normalizePresentation({ ...r.presentation, id });
+      await idbSet(presKey(id), fresh);
+      setAccount(id, { version: r.version });
+    }
+  }
   const p = await loadPresentation(id);
   if (!p) return false;
   useApp.getState().loadPresentation(p);
@@ -103,7 +130,9 @@ export async function duplicatePresentation(id: string): Promise<void> {
   await addPresentation({ ...p, id: uid(), title: `${p.title} (kopya)`, createdAt: now, updatedAt: now });
 }
 
-export async function removePresentation(id: string): Promise<void> {
+export async function removePresentation(id: string, opts: { keepRemote?: boolean } = {}): Promise<void> {
+  const entry = useLibrary.getState().entries.find((e) => e.id === id);
+  if (entry?.account && !opts.keepRemote && libraryHooks.deleteRemote) await libraryHooks.deleteRemote(id).catch(() => undefined);
   await idbDel(presKey(id));
   useLibrary.setState((s) => ({ entries: s.entries.filter((e) => e.id !== id) }));
   await persist();
@@ -128,3 +157,29 @@ export function setCloud(presId: string, cloud: CloudLink | undefined): void {
 
 export const cloudOf = (presId: string): CloudLink | undefined => useLibrary.getState().entries.find((e) => e.id === presId)?.cloud;
 export const entryByShare = (shareId: string): LibEntry | undefined => useLibrary.getState().entries.find((e) => e.cloud?.shareId === shareId);
+
+export function setAccount(presId: string, account: AccountLink | undefined): void {
+  useLibrary.setState((st) => ({ entries: st.entries.map((e) => (e.id === presId ? { ...e, account } : e)) }));
+  void persist();
+}
+
+/** add / refresh entries that exist in the account (content is fetched lazily on open) */
+export function upsertRemoteEntries(items: { id: string; title: string; presenter: string; stepCount: number; updatedAt: number; version: number }[]): void {
+  useLibrary.setState((st) => {
+    const byId = new Map(st.entries.map((e) => [e.id, e]));
+    const added: LibEntry[] = [];
+    for (const it of items) {
+      const e = byId.get(it.id);
+      if (!e) {
+        added.push({ id: it.id, title: it.title, presenter: it.presenter, stepCount: it.stepCount, createdAt: it.updatedAt, updatedAt: it.updatedAt, account: { version: it.version, remoteOnly: true } });
+      } else if (!e.account || it.version > e.account.version) {
+        byId.set(it.id, { ...e, title: it.title, presenter: it.presenter, stepCount: it.stepCount, updatedAt: Math.max(e.updatedAt, it.updatedAt), account: { version: e.account?.version ?? 0, stale: true, remoteOnly: e.account?.remoteOnly } });
+      }
+    }
+    return { entries: [...added, ...st.entries.map((e) => byId.get(e.id)!)] };
+  });
+  void persist();
+}
+
+/** the content of an entry is stored on this device */
+export const hasLocalContent = async (id: string) => !!(await idbGet(presKey(id)));
