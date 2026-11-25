@@ -9,7 +9,7 @@ export function BetaBadge() {
 }
 
 export function Logo({ small = false }: { small?: boolean }) {
-  return <img src="/teknodoz-logo.png" alt="Teknodoz" className={`logo ${small ? 'logo--sm' : ''}`} />;
+  return <img src="/teknodoz-logo.svg" alt="Teknodoz" className={`logo ${small ? 'logo--sm' : ''}`} />;
 }
 
 /** Close a popover on outside click / Escape. */
