@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # scripts/deploy.sh — pull, build and (re)start Teknodoz Sunum with PM2.
 # Usage:  PORT=3030 ./scripts/deploy.sh   (first time)  →  ./scripts/deploy.sh   (afterwards, settings saved in .deploy.env)
+# Switch branch once: BRANCH=main ./scripts/deploy.sh   (remembered in .deploy.env)
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,7 +12,7 @@ CLI_PORT="${PORT:-}"; CLI_BRANCH="${BRANCH:-}"
 # shellcheck disable=SC1090
 [ -f "$ENV_FILE" ] && source "$ENV_FILE"
 export PORT="${CLI_PORT:-${PORT:-3001}}"
-BRANCH="${CLI_BRANCH:-${BRANCH:-claude/nodejs-presentation-app-zu7ljh}}"
+BRANCH="${CLI_BRANCH:-${BRANCH:-main}}"
 export HOST="${HOST:-127.0.0.1}"
 printf 'PORT=%s\nBRANCH=%s\n' "$PORT" "$BRANCH" > "$ENV_FILE"
 
