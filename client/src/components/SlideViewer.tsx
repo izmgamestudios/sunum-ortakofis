@@ -204,7 +204,14 @@ export function SlideViewer({ attachments, focusId, onPinExisting, onPinNew, onA
               <audio src={cur.dataUrl ?? cur.url} controls />
             </div>
           )}
-          {cur.kind === 'link' && (yt ? <iframe src={yt} title={cur.name} className="slide-video" allow="encrypted-media; picture-in-picture" allowFullScreen /> : <MediaView a={cur} />)}
+          {cur.kind === 'link' &&
+            (yt ? (
+              <iframe src={yt} title={cur.name} className="slide-video" allow="encrypted-media; picture-in-picture" allowFullScreen />
+            ) : cur.url && /^https?:\/\//i.test(cur.url) ? (
+              <WebEmbed url={cur.url} name={cur.name} />
+            ) : (
+              <MediaView a={cur} />
+            ))}
         </div>
         <button className="slide-nav slide-nav--next" onClick={() => go(1)} aria-label="Sonraki">
           ›
@@ -252,6 +259,39 @@ export function SlideViewer({ attachments, focusId, onPinExisting, onPinNew, onA
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Live website inside the slide (sandboxed). Sites that forbid framing still get a one-click "open in new tab". */
+function WebEmbed({ url: raw, name }: { url: string; name: string }) {
+  // an https page can't frame plain http — upgrade the link
+  const url = raw.replace(/^http:/i, 'https:');
+  let host = url;
+  try {
+    host = new URL(url).host;
+  } catch {
+    /* keep raw */
+  }
+  return (
+    <div className="web-embed">
+      <div className="web-embed-bar">
+        <span className="web-embed-dot" aria-hidden />
+        <span className="web-embed-url truncate">🔒 {host}</span>
+        <a className="btn btn-sm" href={url} target="_blank" rel="noopener noreferrer">
+          ↗ Yeni sekmede aç
+        </a>
+      </div>
+      <iframe
+        src={url}
+        title={name}
+        className="web-embed-frame"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+        allow="fullscreen; clipboard-write"
+      />
+      <p className="web-embed-note small muted">Site burada açılmıyorsa sahibi gömmeye izin vermiyordur — “Yeni sekmede aç” ile göster.</p>
     </div>
   );
 }

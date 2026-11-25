@@ -11,6 +11,7 @@ import { MediaPanel } from './Media';
 import { APP_EVENTS } from '../lib/nav';
 import { uid } from '../lib/factory';
 import { PixelWorld } from './PixelWorld';
+import { ListenDot } from './Transcript';
 import { RichText } from './RichText';
 import type { SideTab } from './LiveView';
 
@@ -33,16 +34,40 @@ interface Props {
 }
 
 type DockId = 'slides' | 'wall' | 'text' | 'pixels' | 'roleplay' | SideTab;
-const WIDE: DockId[] = ['slides', 'wall', 'text', 'pixels'];
+const WIDE: DockId[] = ['slides', 'wall', 'pixels'];
 
 export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = false, panelFor, roleplay }: Props) {
   const step = useApp((s) => s.pres.steps[stepIndex]);
   const updateStep = useApp((s) => s.updateStep);
   const [tab, setTab] = useState<StageTab>('canvas');
   const [panel, setPanel] = useState<DockId | null>(null);
+  /** presentation screen: app chrome, canvas tools and dock hidden — only the HUD stays */
+  const [present, setPresent] = useState(false);
+  const [dockOpen, setDockOpen] = useState(true);
+  const [textOpen, setTextOpen] = useState(false);
   const flowLabel = step.topicMode === 'tree' ? ['🌳', 'Ağaç'] : step.topicMode === 'tombala' ? ['🎱', 'Tombala'] : ['🧭', 'Akış'];
   // canvas mode: the "tabs" are panels over the canvas
-  const showPanel = (id: DockId) => setPanel((p) => (p === id ? null : id));
+  const showPanel = (id: DockId) => {
+    if (id === 'text') return setTextOpen((o) => !o);
+    setPanel((p) => (p === id ? null : id));
+  };
+  const togglePresent = () => {
+    setPresent((p) => {
+      const next = !p;
+      setDockOpen(!next);
+      if (next) setPanel(null);
+      return next;
+    });
+  };
+  // Esc leaves presentation mode (when not in browser fullscreen, which handles Esc itself)
+  useEffect(() => {
+    if (!present) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.fullscreenElement && !panel) setPresent(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [present, panel]);
   const [fs, setFs] = useState(false);
   const fsRef = useRef(false);
   fsRef.current = fs;
@@ -160,16 +185,19 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = fal
       ...(step.widget === 'pixels' ? ([['pixels', '🌍', 'Piksel']] as [DockId, string, string][]) : []),
       ...(roleplay ? ([['roleplay', '🎭', 'Senaryo']] as [DockId, string, string][]) : []),
       ['flow', flowLabel[0], flowLabel[1]],
-      ['speech', '🎙️', 'Döküm'],
+      ['speech', '🎙️', 'Dinleme'],
       ['notes', '📝', 'Not'],
       ['chat', '💬', 'Sohbet'],
       ['room', '📡', 'Oda'],
     ];
     const current = dock.find((d) => d[0] === panel);
     return (
-      <div ref={stageRef} className={`stage is-canvas ${fs ? 'is-fs' : ''}`}>
+      <div ref={stageRef} className={`stage is-canvas ${fs || present ? 'is-fs' : ''} ${present ? 'is-present' : ''}`}>
         <div className="stage-hud">
           {hud}
+          <button className={`btn btn-sm ${present ? 'btn-primary' : ''}`} onClick={togglePresent} aria-pressed={present} title={present ? 'Düzenleme moduna dön (Esc)' : 'Sunum ekranı: menüler ve düzenleme araçları gizlenir'}>
+            {present ? '✏️' : '🎬'} <span className="hide-sm">{present ? 'Düzenle' : 'Sunum modu'}</span>
+          </button>
           {fsButton}
         </div>
         <div className="stage-body">
@@ -192,6 +220,7 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = fal
                   title={`adim-${stepIndex + 1}`}
                   compact
                   fit
+                  presenting={present}
                 />
                 {peek && panel !== 'wall' && (
                   <button className="peek-sticky" style={{ background: WALL_META[peek.kind].color }} onClick={() => setPanel('wall')} title="Duvarda aç">
@@ -203,22 +232,48 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = fal
                 )}
               </div>
             )}
-            {!overlay && (
+            {!overlay && !dockOpen && (
+              <button className="dock-toggle" onClick={() => setDockOpen(true)} title="Panelleri göster" aria-label="Panelleri göster">
+                ☰
+              </button>
+            )}
+            {!overlay && dockOpen && (
               <nav className="canvas-dock" aria-label="Sunum panelleri">
+                <button className="dock-btn dock-hide" onClick={() => (setDockOpen(false), setPanel(null))} title="Panelleri gizle" aria-label="Panelleri gizle">
+                  <span aria-hidden>‹</span>
+                  <small>Gizle</small>
+                </button>
                 {dock.map(([id, icon, label, badge], k) => (
                   <button
                     key={id}
-                    className={`dock-btn ${panel === id ? 'is-active' : ''} ${k === 3 + (step.widget === 'pixels' ? 1 : 0) + (roleplay ? 1 : 0) ? 'dock-sep' : ''}`}
+                    className={`dock-btn ${panel === id || (id === 'text' && textOpen) ? 'is-active' : ''} ${k === 3 + (step.widget === 'pixels' ? 1 : 0) + (roleplay ? 1 : 0) ? 'dock-sep' : ''}`}
                     onClick={() => showPanel(id)}
-                    aria-pressed={panel === id}
+                    aria-pressed={panel === id || (id === 'text' && textOpen)}
                     title={label}
                   >
                     <span aria-hidden>{icon}</span>
                     <small>{label}</small>
+                    {id === 'speech' && <ListenDot />}
                     {!!badge && panel !== id && <span className="dock-badge">{badge > 9 ? '9+' : badge}</span>}
                   </button>
                 ))}
               </nav>
+            )}
+            {!overlay && (
+              <aside className={`text-drawer ${textOpen ? 'is-open' : ''} ${current && !WIDE.includes(current[0]) ? 'is-shifted' : ''}`} aria-label="Adım metni">
+                <button className="text-handle" onClick={() => setTextOpen((o) => !o)} aria-expanded={textOpen} title={textOpen ? 'Metni gizle' : 'Metni göster'}>
+                  <span aria-hidden>{textOpen ? '›' : '‹'}</span> ✍️ <span className="text-handle-label">Metin</span>
+                </button>
+                {textOpen && (
+                  <div className="text-drawer-body">
+                    {present ? (
+                      <RichText readOnly html={step.html} text={step.text} onChange={() => undefined} />
+                    ) : (
+                      <RichText key={step.id} html={step.html} text={step.text} onChange={(html, text) => updateStep(stepIndex, { html, text })} placeholder="Bu adım için metin yok — buraya canlı yazabilirsin." minHeight={120} />
+                    )}
+                  </div>
+                )}
+              </aside>
             )}
             {!overlay && current && (
               <section className={`float-panel ${WIDE.includes(current[0]) ? 'float-panel--wide' : ''}`} role="dialog" aria-label={current[2]} onKeyDown={(e) => e.key === 'Escape' && setPanel(null)}>
@@ -258,9 +313,6 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = fal
                         setTab('canvas');
                       }}
                     />
-                  )}
-                  {panel === 'text' && (
-                    <RichText key={step.id} html={step.html} text={step.text} onChange={(html, text) => updateStep(stepIndex, { html, text })} placeholder="Bu adım için metin yok — buraya canlı yazabilirsin." />
                   )}
                   {panel === 'pixels' && (
                     <PixelWorld

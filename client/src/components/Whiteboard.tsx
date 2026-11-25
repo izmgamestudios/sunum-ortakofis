@@ -84,6 +84,8 @@ interface Props {
   view?: CanvasView;
   /** called (debounced) when the user zooms or pans — viewers follow it */
   onViewChange?: (v: CanvasView) => void;
+  /** presentation screen: editing toolbar hidden, only select / pan / zoom */
+  presenting?: boolean;
 }
 
 interface Editor {
@@ -144,7 +146,7 @@ function buildTree(els: CanvasElement[], groups: CanvasGroup[]): TNode[] {
   return root.sort((a, b) => b.z - a.z);
 }
 
-export function Whiteboard({ elements, groups = [], onChange, attachments, onAddAttachments, onOpenMedia, title = 'tuval', compact = false, fit = false, toolbarExtra, view: initialView, onViewChange }: Props) {
+export function Whiteboard({ elements, groups = [], onChange, attachments, onAddAttachments, onOpenMedia, title = 'tuval', compact = false, fit = false, toolbarExtra, view: initialView, onViewChange, presenting = false }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -179,6 +181,9 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
   viewRef.current = view;
 
   const setView = (v: View) => setViewState(clampView(v));
+  useEffect(() => {
+    if (presenting) setToolState('select');
+  }, [presenting]);
   // report zoom / pan (debounced) so the step remembers it and viewers follow the presenter
   const reported = useRef(view);
   const onViewRef = useRef(onViewChange);
@@ -998,8 +1003,8 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
   const selLabel = single ? `${elementLabel(single, attachments).icon} ${elementLabel(single, attachments).name}` : selGroup ? `📁 ${selGroup.name}` : `${sel.length} öğe`;
 
   return (
-    <div className={`board ${compact ? 'board--compact' : ''} ${fit ? 'board--fit' : ''}`}>
-      <div className="board-toolbar" role="toolbar" aria-label="Tuval araçları">
+    <div className={`board ${compact ? 'board--compact' : ''} ${fit ? 'board--fit' : ''} ${presenting ? 'board--presenting' : ''}`}>
+      <div className="board-toolbar" role="toolbar" aria-label="Tuval araçları" hidden={presenting}>
         <div className="seg">
           {TOOLS.map((t) => (
             <button key={t.id} className={`tool ${tool === t.id ? 'is-active' : ''}`} onClick={() => setTool(t.id)} title={t.label} aria-label={t.label} aria-pressed={tool === t.id}>

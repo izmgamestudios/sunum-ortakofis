@@ -10,7 +10,7 @@ import { RoleplayCard } from './Roleplay';
 import { BreakScreen } from './BreakScreen';
 import { TombalaLive, TreeLive } from './Topics';
 import { ChatPanel, NotesPanel, RoomPanel } from './Panels';
-import { MicIndicator, TranscriptPanel } from './Transcript';
+import { ListenDot, MicIndicator, TranscriptPanel } from './Transcript';
 import { LiveStage } from './LiveStage';
 import { MinuteInput } from './MinuteInput';
 
@@ -42,7 +42,7 @@ function SidePanel({ stepIndex, fixedTab }: { stepIndex: number; fixedTab?: Side
         {(
           [
             ['flow', step.topicMode === 'tree' ? '🌳' : step.topicMode === 'tombala' ? '🎱' : '🧭', step.topicMode === 'tree' ? 'Ağaç' : step.topicMode === 'tombala' ? 'Tombala' : 'Akış'],
-            ['speech', '🎙️', 'Döküm'],
+            ['speech', '🎙️', 'Dinleme'],
             ['notes', '📝', 'Not'],
             ['chat', '💬', 'Sohbet'],
             ['room', '📡', 'Oda'],
@@ -52,6 +52,7 @@ function SidePanel({ stepIndex, fixedTab }: { stepIndex: number; fixedTab?: Side
             <span className="side-tab-ico" aria-hidden>
               {icon}
               {t === 'chat' && unread > 0 && tab !== 'chat' && <span className="side-tab-badge">{unread > 9 ? '9+' : unread}</span>}
+              {t === 'speech' && <ListenDot />}
             </span>
             <span className="side-tab-label">{label}</span>
           </button>

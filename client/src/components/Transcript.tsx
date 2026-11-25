@@ -1,11 +1,18 @@
 // client/src/components/Transcript.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../store';
-import { SPEECH_LANGS, useSpeech } from '../lib/speech';
+import { listenOverride, SPEECH_LANGS, useSpeech } from '../lib/speech';
+import { useSettings } from '../lib/settings';
 import { speechStats } from '../lib/speechMatch';
 import { fmtDuration } from '../lib/report';
 
 /** Small pulsing indicator for the live top bar. */
+/** red while listening / recording, green when stopped */
+export function ListenDot() {
+  const on = useSpeech((s) => s.listening || s.recording);
+  return <span className={`listen-dot ${on ? 'is-on' : 'is-off'}`} role="img" aria-label={on ? 'Kayıt sürüyor' : 'Kayıt durdu'} title={on ? 'Kayıt sürüyor' : 'Kayıt durdu'} />;
+}
+
 export function MicIndicator() {
   const { listening, recording, lastMatches } = useSpeech();
   if (!listening && !recording) return null;
@@ -25,6 +32,7 @@ export function TranscriptPanel() {
   const removeTranscript = useApp((s) => s.removeTranscript);
   const { supported, listening, recording, keepAudio, lang, interim, error, lastMatches, start, stop, setLang, setKeepAudio } = useSpeech();
   const [onlyStep, setOnlyStep] = useState(true);
+  const { autoListen, set: setSettings } = useSettings();
   const [manual, setManual] = useState('');
   const [manualHits, setManualHits] = useState<string[] | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -49,8 +57,15 @@ export function TranscriptPanel() {
   return (
     <div className="panel stack transcript-panel">
       <div className="row gap-s wrap">
-        <button className={`btn ${active ? 'btn-danger' : 'btn-primary'}`} onClick={() => (active ? stop() : start())}>
-          {active ? '⏹ Durdur' : '🎙️ Dinlemeye başla'}
+        <button
+          className={`btn ${active ? 'btn-danger' : 'btn-primary'}`}
+          onClick={() => {
+            listenOverride.stoppedByHand = active;
+            if (active) stop();
+            else void start();
+          }}
+        >
+          <ListenDot /> {active ? 'Dinlemeyi durdur' : 'Dinlemeye başla'}
         </button>
         <select className="seg-select" value={lang} onChange={(e) => setLang(e.target.value)} aria-label="Konuşma dili">
           {SPEECH_LANGS.map((l) => (
@@ -60,6 +75,10 @@ export function TranscriptPanel() {
           ))}
         </select>
       </div>
+      <label className="switch small">
+        <input type="checkbox" checked={autoListen} onChange={(e) => setSettings({ autoListen: e.target.checked })} />
+        <span>⏱️ Sunum başlayınca otomatik dinle (molada ve duraklatınca durur, adım başlayınca devam eder)</span>
+      </label>
       <label className="switch small">
         <input type="checkbox" checked={keepAudio} disabled={active} onChange={(e) => setKeepAudio(e.target.checked)} />
         <span>💾 Ses kaydını da sakla (her adım ayrı dosya, Medya’ya eklenir)</span>

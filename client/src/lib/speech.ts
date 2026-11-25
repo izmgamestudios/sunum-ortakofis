@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { useApp } from '../store';
 import { readAsDataUrl } from './io';
 import { uid } from './factory';
+import { useSettings } from './settings';
 
 /* Minimal typings — Web Speech API is not in lib.dom for all TS versions */
 interface SRAlternative {
@@ -199,18 +200,37 @@ function stopRecording(): void {
   if (rec && rec.state !== 'inactive') rec.stop();
 }
 
-/** Close the current recording when the step changes, so each step gets its own audio file; stop everything at the end. */
+/**
+ * Listening follows the timer: starts when a step starts (auto-listen), pauses during breaks and while paused,
+ * resumes with the step, stops at the end. Each step also gets its own audio file.
+ */
 let lastStep = -1;
 let lastPhase = '';
+let lastPaused = false;
+/** set by Transcript when the presenter starts/stops by hand during the current step */
+export const listenOverride = { stoppedByHand: false };
 useApp.subscribe((s) => {
   const { phase, stepIndex } = s.live;
-  if (phase === lastPhase && stepIndex === lastStep) return;
+  const paused = !!s.live.pausedAt;
+  if (phase === lastPhase && stepIndex === lastStep && paused === lastPaused) return;
   const stepChanged = stepIndex !== lastStep && lastStep !== -1;
+  const phaseChanged = phase !== lastPhase;
   lastStep = stepIndex;
   lastPhase = phase;
+  lastPaused = paused;
   const sp = useSpeech.getState();
+  if (stepChanged || phaseChanged) listenOverride.stoppedByHand = false;
   if (phase === 'done' || phase === 'idle') {
     if (sp.listening || sp.recording) sp.stop();
+    return;
+  }
+  const want = phase === 'step' && !paused && useSettings.getState().autoListen && !listenOverride.stoppedByHand;
+  if (want && !sp.listening && !sp.recording && sp.supported) {
+    void sp.start();
+    return;
+  }
+  if ((phase === 'break' || paused) && useSettings.getState().autoListen && (sp.listening || sp.recording)) {
+    sp.stop();
     return;
   }
   if (stepChanged && sp.recording && phase === 'step') {

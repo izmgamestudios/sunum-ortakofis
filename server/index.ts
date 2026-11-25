@@ -133,7 +133,7 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
         mediaSrc: ["'self'", 'data:', 'blob:', 'https:'],
-        frameSrc: ["'self'", 'blob:', 'https://www.youtube-nocookie.com', 'https://player.vimeo.com'],
+        frameSrc: ["'self'", 'blob:', 'https:'],
         objectSrc: ["'self'", 'blob:'],
         connectSrc: ["'self'", 'ws:', 'wss:'],
         workerSrc: ["'self'", 'blob:'],
