@@ -16,7 +16,10 @@ const PORT = Number(process.env.PORT ?? 3001);
 const HOST = process.env.HOST ?? '0.0.0.0';
 // optional secrets (SMTP for e-mail login codes, …) from the project's .env — git-ignored, survives deploys
 const ENV_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env');
-if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
+if (existsSync(ENV_FILE)) {
+  process.loadEnvFile(ENV_FILE);
+  console.log(`[env] loaded ${ENV_FILE}`);
+}
 const IS_PROD = process.env.NODE_ENV === 'production';
 const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_MSG_LEN = 500;

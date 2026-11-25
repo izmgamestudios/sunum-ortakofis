@@ -48,6 +48,15 @@ export function createAuth(secret: string, isProd: boolean): Auth {
   const port = Number(process.env.SMTP_PORT ?? 465);
   const transporter: Transporter | null = host && user && pass ? nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } }) : null;
   if (!transporter) console.warn('[auth] SMTP_USER / SMTP_PASS not set — login codes are only printed to this log (development).');
+  else {
+    const masked = user.replace(/^(.{2}).*(@.*)$/, '$1***$2');
+    console.log(`[auth] SMTP ready: ${host}:${port} as ${masked}`);
+    // verify the login once at startup so a wrong app password shows up in the log right away
+    transporter.verify().then(
+      () => console.log('[auth] SMTP login OK'),
+      (e: unknown) => console.error(`[auth] SMTP login FAILED: ${e instanceof Error ? e.message : String(e)}`),
+    );
+  }
 
   const send = async (to: string, subject: string, text: string, html: string) => {
     if (!transporter) {
