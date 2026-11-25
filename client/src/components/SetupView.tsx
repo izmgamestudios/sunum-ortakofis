@@ -1,5 +1,6 @@
 // client/src/components/SetupView.tsx
 import { useState } from 'react';
+import { JuryEditor, QuestionEditor } from './Interact';
 import { GapToggle, IntroOutroEditor } from './IntroOutro';
 import { hasBreakAfter } from '../store';
 import { MinuteInput } from './MinuteInput';
@@ -18,7 +19,7 @@ import { useSettings } from '../lib/settings';
 import { bell, unlockAudio } from '../lib/sound';
 import { TombalaEditor, TreeEditor } from './Topics';
 
-type EditorTab = 'text' | 'media' | 'canvas' | 'flow';
+type EditorTab = 'text' | 'media' | 'canvas' | 'flow' | 'interact';
 
 function BreakSettings({ value, onChange }: { value: BreakConfig; onChange: (v: BreakConfig) => void }) {
   const toggleAct = (a: BreakActivity) =>
@@ -153,6 +154,7 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
             ['media', `🗂️ Medya${step.attachments.length ? ` (${step.attachments.length})` : ''}`],
             ['canvas', '🎨 Tuval'],
             ['flow', '🧭 Konu akışı'],
+            ['interact', `📊 Etkileşim${step.questions?.length ? ` (${step.questions.length})` : ''}`],
           ] as const
         ).map(([t, l]) => (
           <button key={t} role="tab" aria-selected={tab === t} className={`subtab ${tab === t ? 'is-active' : ''}`} onClick={() => setTab(t)}>
@@ -212,6 +214,7 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
           title={`adim-${index + 1}`}
         />
       )}
+      {tab === 'interact' && <QuestionEditor questions={step.questions ?? []} onChange={(questions) => patch({ questions })} />}
       {tab === 'flow' && (
         <div className="stack">
           <div className="seg-control" role="radiogroup" aria-label="Konu akışı">
@@ -303,6 +306,11 @@ export function SetupView() {
             <button className="btn btn-ghost btn-sm" onClick={resetDurations}>
               ↺ Süreleri 1-2-3… dk yap
             </button>
+          </div>
+
+          <div className="card" data-anchor="setup-jury">
+            <h2 className="card-title">🏆 Pitch günü jürisi</h2>
+            <JuryEditor />
           </div>
 
           <div className="card" data-anchor="setup-intro">

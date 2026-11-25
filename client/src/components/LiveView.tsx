@@ -1,5 +1,6 @@
 // client/src/components/LiveView.tsx
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { JuryPanel, LivePollPanel } from './Interact';
 import { GapToggle, IntroScreen, OutroScreen } from './IntroOutro';
 import { phaseElapsedMs, useApp } from '../store';
 import { useRoom } from '../lib/room';
@@ -16,7 +17,7 @@ import { LiveStage } from './LiveStage';
 import { ScreenRecButton } from './Recordings';
 import { MinuteInput } from './MinuteInput';
 
-export type SideTab = 'flow' | 'speech' | 'notes' | 'chat' | 'room';
+export type SideTab = 'flow' | 'speech' | 'notes' | 'chat' | 'room' | 'poll' | 'jury';
 
 function useNow(intervalMs = 250): number {
   const [now, setNow] = useState(() => Date.now());
@@ -31,6 +32,7 @@ function useNow(intervalMs = 250): number {
 function SidePanel({ stepIndex, fixedTab }: { stepIndex: number; fixedTab?: SideTab }) {
   const step = useApp((s) => s.pres.steps[stepIndex]);
   const chatCount = useApp((s) => s.pres.chat.length);
+  const juryOn = useApp((s) => !!s.pres.jury?.enabled);
   const [ownTab, setTab] = useState<SideTab>('flow');
   const tab = fixedTab ?? ownTab;
   const [seenChat, setSeenChat] = useState(chatCount);
@@ -48,7 +50,9 @@ function SidePanel({ stepIndex, fixedTab }: { stepIndex: number; fixedTab?: Side
             ['notes', '📝', 'Not'],
             ['chat', '💬', 'Sohbet'],
             ['room', '📡', 'Oda'],
-          ] as const
+            ['poll', '📊', 'Etkileşim'],
+            ...(juryOn ? ([['jury', '⚖️', 'Jüri']] as const) : []),
+          ] as [SideTab, string, string][]
         ).map(([t, icon, label]) => (
           <button key={t} role="tab" aria-selected={tab === t} className={`side-tab ${tab === t ? 'is-active' : ''}`} onClick={() => setTab(t)} title={label}>
             <span className="side-tab-ico" aria-hidden>
@@ -72,6 +76,8 @@ function SidePanel({ stepIndex, fixedTab }: { stepIndex: number; fixedTab?: Side
       {tab === 'notes' && <NotesPanel />}
       {tab === 'chat' && <ChatPanel />}
       {tab === 'room' && <RoomPanel />}
+      {tab === 'poll' && <LivePollPanel stepIndex={stepIndex} />}
+      {tab === 'jury' && <JuryPanel />}
     </div>
   );
 }

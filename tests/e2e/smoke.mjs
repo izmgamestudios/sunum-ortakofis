@@ -197,6 +197,54 @@ try {
     await A.waitForFunction(() => document.querySelector('.hero-title')?.value === 'Senkron testi (B)', null, { timeout: 10000 });
   });
 
+  await check('live quiz + pitch jury (PIN): vote, points, ranking, report', async () => {
+    const P = await newPage();
+    await P.goto(BASE);
+    await P.waitForSelector('.hero-title');
+    await P.getByRole('button', { name: 'Sunumlarım' }).first().click();
+    await P.getByRole('button', { name: /Yeni sunum/ }).click();
+    await P.getByRole('button', { name: 'Hazırlık' }).first().click();
+    await P.locator('.count-picker button', { hasText: '2' }).first().click();
+    await P.locator('.step-editor-head .input--title').fill('Takım Alfa');
+    await P.getByRole('tab', { name: /Etkileşim/ }).click();
+    await P.getByRole('button', { name: /＋ 🏆 Quiz/ }).click();
+    const q = P.locator('.q-item').first();
+    await q.getByLabel('Soru metni').fill('2 + 2 = ?');
+    await q.getByLabel('1. seçenek', { exact: true }).fill('3');
+    await q.getByLabel('2. seçenek', { exact: true }).fill('4');
+    await q.getByLabel('Doğru cevap: 2. seçenek').check();
+    await P.getByText('Pitch günü: her adım bir takımın pitch’i').click();
+    const pin = await P.getByLabel('Jüri PIN').inputValue();
+    await P.locator('.start-bar').getByRole('button', { name: /Sunumu başlat/ }).click();
+    await P.getByRole('button', { name: /Hayır, kayıt alma/ }).click();
+    await P.locator('.dock-btn', { hasText: 'Etkileşim' }).click();
+    await P.locator('.q-row', { hasText: '2 + 2' }).getByRole('button', { name: /Başlat/ }).click();
+    await P.waitForSelector('.room-code-inline', { timeout: 10000 });
+    const code = (await P.locator('.room-code-inline').innerText()).trim();
+    const A = await newPage({ viewport: { width: 390, height: 844 } });
+    await A.goto(`${BASE}/?join=${code}`);
+    await A.waitForSelector('.aud-poll', { timeout: 10000 });
+    await A.getByRole('button', { name: '4', exact: true }).click();
+    await P.getByRole('button', { name: /Bitir ve sonuçları göster/ }).click();
+    await A.waitForSelector('.quiz-right', { timeout: 5000 });
+    expect((await P.locator('.leaderboard .podium-col').count()) >= 1, 'no leaderboard');
+    await P.locator('.dock-btn', { hasText: 'Jüri' }).click();
+    await P.waitForSelector('.jury-panel');
+    await A.getByRole('tab', { name: /Jüri/ }).click();
+    await A.getByRole('button', { name: /PIN ile/ }).click();
+    await A.getByLabel('Jüri PIN').fill(pin);
+    await A.getByRole('button', { name: 'Gir' }).click();
+    await A.waitForSelector('.jury-scale');
+    const crits = A.locator('.jury-crit');
+    for (let i = 0; i < (await crits.count()); i++) await crits.nth(i).getByRole('radio', { name: '8', exact: true }).click();
+    await A.getByRole('button', { name: /Puanı gönder/ }).click();
+    await P.waitForFunction(() => document.querySelector('.jury-table tbody tr td:nth-last-child(2)')?.textContent?.trim() === '8.00', null, { timeout: 5000 });
+    await P.keyboard.press('Escape');
+    await P.getByRole('button', { name: 'Sunumu bitir' }).click();
+    await P.waitForSelector('[data-anchor="report-jury"]', { timeout: 8000 });
+    await P.waitForSelector('[data-anchor="report-polls"]');
+  });
+
   await check('audience page loads with a room code', async () => {
     const a = await newPage({ viewport: { width: 390, height: 844 } });
     await a.goto(`${BASE}/?join=ABC123`);

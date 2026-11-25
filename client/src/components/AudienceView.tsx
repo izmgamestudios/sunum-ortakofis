@@ -1,5 +1,6 @@
 // client/src/components/AudienceView.tsx — public page for anonymous viewers (?join=CODE)
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AudienceJury, AudiencePoll, sayHello } from './AudienceInteract';
 import { emitAck, getSocket } from '../lib/socket';
 import { REACTIONS } from '../lib/catalog';
 import { applyView, BOARD_H, BOARD_W, drawElement } from '../lib/canvasDraw';
@@ -14,6 +15,7 @@ interface PublicState {
   phase: 'idle' | 'step' | 'break' | 'done';
   roleplay?: string;
   chatLocked: boolean;
+  stepTitle?: string;
 }
 
 interface CanvasSnapshot {
@@ -23,7 +25,7 @@ interface CanvasSnapshot {
   at: number;
 }
 
-type Tab = 'canvas' | 'chat' | 'suggest';
+type Tab = 'canvas' | 'chat' | 'suggest' | 'jury';
 type LiveView = CanvasView & { stepIndex: number };
 
 /** Read-only mirror of the presenter's canvas: follows the presenter's zoom / pan unless the viewer zooms on their own. */
@@ -147,6 +149,7 @@ export function AudienceView({ initialCode }: { initialCode: string }) {
       setName(r.name ?? 'Anonim');
       setState(r.state ?? null);
       setJoined(true);
+      sayHello();
       const u = new URL(window.location.href);
       u.searchParams.set('join', c);
       window.history.replaceState(null, '', u);
@@ -361,12 +364,15 @@ export function AudienceView({ initialCode }: { initialCode: string }) {
           {state?.roleplay && <p className="rp-sentence small">{state.roleplay}</p>}
         </section>
 
+        <AudiencePoll myName={name} />
+
         <div className="aud-tabs show-md-down" role="tablist">
           {(
             [
               ['canvas', '🎨 Tuval'],
               ['chat', `💬 Sohbet${unread ? ` (${unread})` : ''}`],
               ['suggest', '🎱 Öneri'],
+              ['jury', '⚖️ Jüri'],
             ] as const
           ).map(([t, l]) => (
             <button key={t} role="tab" aria-selected={tab === t} className={`side-tab ${tab === t ? 'is-active' : ''}`} onClick={() => setTab(t)}>
@@ -384,6 +390,9 @@ export function AudienceView({ initialCode }: { initialCode: string }) {
           <div className="aud-col-side">
             <div className={tab === 'chat' ? '' : 'hide-mobile'}>{chat}</div>
             <div className={tab === 'suggest' ? '' : 'hide-mobile'}>{suggestCard}</div>
+            <div className={tab === 'jury' ? '' : 'hide-mobile'}>
+              <AudienceJury code={code} stepIndex={state?.stepIndex ?? 0} stepTitle={state?.stepTitle ?? ''} />
+            </div>
           </div>
         </div>
       </main>

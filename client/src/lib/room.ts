@@ -131,6 +131,7 @@ export function pushState(): void {
     title: pres.title,
     stepIndex: live.stepIndex,
     stepCount: pres.steps.length,
+    stepTitle: pres.steps[live.stepIndex]?.title ?? '',
     phase: live.phase,
     roleplay: live.currentRoleplay ? roleplaySentence(live.currentRoleplay) : '',
     chatLocked: useRoom.getState().chatLocked,

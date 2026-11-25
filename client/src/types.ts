@@ -136,6 +136,60 @@ export interface Step {
   view?: CanvasView;
   /** transition (break) after this step: undefined = follow the global break setting */
   breakAfter?: boolean;
+  /** live audience questions for this step (polls, quiz, word cloud…) */
+  questions?: Question[];
+}
+
+export type QuestionKind = 'choice' | 'yesno' | 'scale' | 'cloud' | 'open' | 'quiz';
+
+export interface Question {
+  id: string;
+  kind: QuestionKind;
+  text: string;
+  options: string[];
+  /** quiz: index of the right option */
+  correct?: number;
+  /** quiz: seconds to answer */
+  timeLimit?: number;
+}
+
+export interface PollResult {
+  qid: string;
+  stepIndex: number;
+  kind: QuestionKind;
+  text: string;
+  options: string[];
+  total: number;
+  counts: number[];
+  average: number | null;
+  words: [string, number][];
+  texts: string[];
+  correct: number | null;
+  at: number;
+}
+
+export interface JuryCriterion {
+  id: string;
+  label: string;
+  weight: number;
+}
+
+/** pitch day: each step is a team's pitch, jurors score it on the criteria (1–10) */
+export interface JuryConfig {
+  enabled: boolean;
+  criteria: JuryCriterion[];
+  /** PIN for jurors (4–6 digits); empty → PIN mode off */
+  pin: string;
+  /** invited jurors (log in with an e-mail code) */
+  emails: string[];
+}
+
+export interface JuryStepResult {
+  stepIndex: number;
+  avg: Record<string, number>;
+  total: number;
+  jurors: number;
+  comments: { name: string; text: string }[];
 }
 
 /** visible board region: top-left (ox, oy) in board units, zoom 1 = the 16:9 frame */
@@ -197,6 +251,12 @@ export interface RunLog {
   bingoCount: number;
   /** words / tree nodes auto-marked from speech transcript */
   autoMarked: number;
+  /** closed live questions */
+  polls?: PollResult[];
+  /** quiz leaderboard at the end */
+  board?: { rank: number; name: string; points: number; correct: number }[];
+  /** pitch-day jury results */
+  jury?: JuryStepResult[];
 }
 
 export interface Swot {
@@ -230,6 +290,8 @@ export interface Presentation {
   intro?: IntroConfig;
   /** closing screen: thanks + contact */
   outro?: OutroConfig;
+  /** pitch-day jury mode */
+  jury?: JuryConfig;
 }
 
 export interface IntroConfig {

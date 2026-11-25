@@ -5,6 +5,7 @@ import { Shell } from './components/Shell';
 import { SetupView } from './components/SetupView';
 import { initCloudSync } from './lib/cloud';
 import { initAccount } from './lib/account';
+import { initInteract } from './lib/interact';
 
 const LiveView = lazy(() => import('./components/LiveView').then((m) => ({ default: m.LiveView })));
 const ReportView = lazy(() => import('./components/ReportView').then((m) => ({ default: m.ReportView })));
@@ -34,6 +35,7 @@ function PresenterApp() {
     void hydrate().then(() => {
       initCloudSync();
       void initAccount();
+      initInteract();
     });
   }, []);
 

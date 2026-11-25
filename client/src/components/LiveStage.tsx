@@ -1,5 +1,6 @@
 // client/src/components/LiveStage.tsx — canvas / slides / sticky wall / text, with fullscreen + HUD + side drawer
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useInteract } from '../lib/interact';
 import { useApp } from '../store';
 import type { Attachment } from '../types';
 import { elementsForAttachments, stickyElement } from '../lib/canvasDraw';
@@ -34,13 +35,15 @@ interface Props {
 }
 
 type DockId = 'slides' | 'wall' | 'text' | 'pixels' | 'roleplay' | SideTab;
-const WIDE: DockId[] = ['slides', 'wall', 'pixels'];
+const WIDE: DockId[] = ['slides', 'wall', 'pixels', 'poll', 'jury'];
 
 export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = false, panelFor, roleplay }: Props) {
   const step = useApp((s) => s.pres.steps[stepIndex]);
   const updateStep = useApp((s) => s.updateStep);
   const [tab, setTab] = useState<StageTab>('canvas');
   const [panel, setPanel] = useState<DockId | null>(null);
+  const juryOn = useApp((s) => !!s.pres.jury?.enabled);
+  const pollActive = useInteract((s) => !!s.active);
   /** presentation screen: app chrome, canvas tools and dock hidden — only the HUD stays */
   const [present, setPresent] = useState(false);
   const [dockOpen, setDockOpen] = useState(true);
@@ -189,6 +192,8 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = fal
       ['notes', '📝', 'Not'],
       ['chat', '💬', 'Sohbet'],
       ['room', '📡', 'Oda'],
+      ['poll', '📊', 'Etkileşim', pollActive ? 1 : 0],
+      ...(juryOn ? ([['jury', '⚖️', 'Jüri']] as [DockId, string, string][]) : []),
     ];
     const current = dock.find((d) => d[0] === panel);
     return (
@@ -323,7 +328,7 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay, canvasMode = fal
                     />
                   )}
                   {panel === 'roleplay' && roleplay}
-                  {panel && !WIDE.includes(panel) && panel !== 'roleplay' && panelFor?.(panel as SideTab)}
+                  {panel && !(['slides', 'wall', 'pixels', 'roleplay'] as DockId[]).includes(panel) && panelFor?.(panel as SideTab)}
                 </div>
               </section>
             )}

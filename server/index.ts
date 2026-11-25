@@ -11,6 +11,7 @@ import { Server, type Socket } from 'socket.io';
 import type { Router } from 'express';
 import { createShareRouter } from './shares.js';
 import { createUserLib } from './userlib.js';
+import { createInteract } from './interact.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 /** Behind a reverse proxy (CloudPanel/nginx) bind to 127.0.0.1 so the app port is not publicly reachable. */
@@ -37,6 +38,8 @@ interface PublicState {
   phase: 'idle' | 'step' | 'break' | 'done';
   roleplay?: string;
   chatLocked: boolean;
+  /** title of the current step (pitch-day jurors see which team they score) */
+  stepTitle?: string;
 }
 
 interface CanvasSnapshot {
@@ -157,6 +160,8 @@ app.use(compression());
 let shareRouter: Router | null = null;
 let authRouter: Router | null = null;
 let meRouter: Router | null = null;
+let interactRouter: Router | null = null;
+app.use('/api/live', (req, res, next) => (interactRouter ? interactRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
 app.use('/api/me', (req, res, next) => (meRouter ? meRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
 app.use('/api/auth', (req, res, next) => (authRouter ? authRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
 app.use('/api/shares', (req, res, next) => (shareRouter ? shareRouter(req, res, next) : res.status(503).json({ error: 'Hazırlanıyor' })));
@@ -190,6 +195,8 @@ const shares = createShareRouter(io, DATA_DIR, IS_PROD);
 shareRouter = shares.router;
 authRouter = shares.auth.router;
 meRouter = createUserLib(io, DATA_DIR, shares.auth, shares.secret);
+const interact = createInteract(io, shares.auth, shares.secret);
+interactRouter = interact.router;
 
 
 io.on('connection', (socket: Socket) => {
@@ -200,6 +207,7 @@ io.on('connection', (socket: Socket) => {
   let joinedCode: string | null = null;
   let isPresenter = false;
   let name = anonName();
+  interact.attach(socket, { room: () => (joinedCode ? rooms.get(joinedCode) ?? null : null), isPresenter: () => isPresenter, name: () => name });
 
   socket.on('presenter:create', (payload: { title?: string }, ack?: (r: unknown) => void) => {
     if (typeof ack !== 'function') return;
@@ -336,8 +344,9 @@ io.on('connection', (socket: Socket) => {
     if (!room) return;
     const s = room.state;
     if (typeof payload.title === 'string') s.title = cleanText(payload.title, 120) ?? s.title;
-    if (Number.isInteger(payload.stepIndex)) s.stepIndex = Math.max(0, Math.min(20, payload.stepIndex as number));
-    if (Number.isInteger(payload.stepCount)) s.stepCount = Math.max(0, Math.min(20, payload.stepCount as number));
+    if (Number.isInteger(payload.stepIndex)) s.stepIndex = Math.max(0, Math.min(60, payload.stepIndex as number));
+    if (Number.isInteger(payload.stepCount)) s.stepCount = Math.max(0, Math.min(60, payload.stepCount as number));
+    if (typeof payload.stepTitle === 'string') s.stepTitle = cleanText(payload.stepTitle, 120) ?? undefined;
     if (payload.phase && ['idle', 'step', 'break', 'done'].includes(payload.phase)) s.phase = payload.phase;
     if (typeof payload.roleplay === 'string') s.roleplay = cleanText(payload.roleplay, 300) ?? undefined;
     if (typeof payload.chatLocked === 'boolean') s.chatLocked = payload.chatLocked;
@@ -397,6 +406,7 @@ setInterval(() => {
       io.to(code).emit('room:closed');
       io.in(code).socketsLeave(code);
       rooms.delete(code);
+      interact.forget(code);
     }
   }
 }, 10 * 60 * 1000).unref();

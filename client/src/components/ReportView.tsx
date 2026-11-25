@@ -1,5 +1,6 @@
 // client/src/components/ReportView.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ReportInteract } from './Interact';
 import { useApp } from '../store';
 import type { Swot } from '../types';
 import { buildReport, fmtDuration } from '../lib/report';
@@ -324,6 +325,8 @@ export function ReportView() {
             </div>
           </section>
         )}
+
+        <ReportInteract pres={pres} />
 
         <RecordingsSection />
 

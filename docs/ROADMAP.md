@@ -14,7 +14,7 @@ Zaman kutulu adımlar · tek tuval · 66 çerçeve ve iş kanvası · şablonlar
 - Çakışma: sürüm numarası (mevcut 409 mantığı), son yazan kazanır + “diğer sürümü kopya olarak sakla”.
 - **Kabul:** iki farklı tarayıcıda aynı e-postayla giriş → aynı sunumlar, birinde düzenleme diğerine ≤5 sn'de yansır.
 
-## Sprint 2 — Canlı anket, quiz ve puan tablosu
+## ✅ Sprint 2 — Canlı anket, quiz ve puan tablosu (tamamlandı)
 - Adıma “soru” ekle: çoktan seçmeli, evet/hayır, 1–5 puan, kelime bulutu, açık uçlu.
 - İzleyici oda kodu ile oy verir; sonuç tuvalde canlı grafik.
 - Quiz modu: doğru cevap + hız puanı → takma adlı puan tablosu, sunum sonunda podyum.

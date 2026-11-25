@@ -5340,3 +5340,60 @@ a.footer-link {
 .sync-banner.is-on { border-style: solid; border-color: color-mix(in srgb, var(--blue) 40%, var(--border)); background: color-mix(in srgb, var(--blue) 6%, var(--surface)); }
 .sync-banner.is-error { border-color: var(--danger); }
 .lib-badge--acct { background: color-mix(in srgb, var(--blue) 12%, var(--surface)); }
+
+/* ---------- live polls, quiz, leaderboard, jury ---------- */
+.poll-bars { display: grid; gap: 8px; }
+.poll-bar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(80px, 2fr) auto; gap: 10px; align-items: center; }
+.poll-bar-label { font-weight: 600; overflow-wrap: anywhere; }
+.poll-bar-track { height: 14px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.poll-bar-track span { display: block; height: 100%; background: var(--grad); border-radius: 99px; transition: width 0.4s ease; }
+.poll-bar.is-correct .poll-bar-track span { background: var(--success); }
+.poll-bar.is-wrong { opacity: 0.6; }
+.poll-bar-n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.poll-avg { margin: 4px 0 0; font-weight: 800; font-size: 1.1rem; }
+.word-cloud-live { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; align-items: center; padding: 12px; min-height: 80px; }
+.word-cloud-live span { font-weight: 800; line-height: 1.1; }
+.open-answers { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; max-height: 280px; overflow: auto; }
+.open-answers li { padding: 6px 10px; border-radius: 8px; background: var(--surface-2); }
+.poll-countdown { font-weight: 800; font-variant-numeric: tabular-nums; }
+.poll-countdown.is-low { color: var(--danger); }
+.poll-live { display: flex; flex-direction: column; gap: 10px; }
+.q-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; }
+.q-editor .q-item { display: flex; flex-direction: column; gap: 6px; }
+.q-options { gap: 6px; }
+.q-options input[type='radio'] { width: 18px; height: 18px; accent-color: var(--success); flex: none; }
+.q-time { width: 70px; }
+.room-code-inline { font-family: ui-monospace, monospace; letter-spacing: 0.1em; }
+.leaderboard { display: flex; flex-direction: column; gap: 8px; }
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding-top: 8px; }
+.podium-col { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 120px; text-align: center; }
+.podium-col b { max-width: 100%; }
+.podium-medal { font-size: 1.8rem; }
+.podium-block { width: 100%; display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 1.3rem; border-radius: 10px 10px 0 0; background: var(--grad); }
+.podium-col.p1 .podium-block { height: 90px; }
+.podium-col.p2 .podium-block { height: 64px; opacity: 0.85; }
+.podium-col.p3 .podium-block { height: 46px; opacity: 0.7; }
+.board-list { margin: 0; padding-left: 26px; display: grid; gap: 4px; }
+.board-list li { display: flex; justify-content: space-between; gap: 8px; }
+.board-list li.is-you { font-weight: 800; color: var(--purple); }
+.jury-criteria { display: grid; gap: 6px; }
+.jury-pin { width: 140px; font-family: ui-monospace, monospace; letter-spacing: 0.2em; }
+.jury-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.jury-table th, .jury-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: center; }
+.jury-table th:nth-child(2), .jury-table td:nth-child(2) { text-align: left; }
+.table-wrap { overflow-x: auto; }
+.report-polls { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.aud-poll { display: flex; flex-direction: column; gap: 10px; border: 2px solid var(--purple); }
+.aud-poll h2 { margin: 0; font-size: 1.25rem; }
+.aud-options { display: grid; gap: 8px; }
+.aud-options.is-scale { grid-template-columns: repeat(5, 1fr); }
+.aud-option { min-height: 52px; padding: 10px 14px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 1.05rem; font-weight: 700; cursor: pointer; text-align: left; }
+.aud-options.is-scale .aud-option { text-align: center; font-size: 0.8rem; padding: 8px 2px; }
+.aud-option.is-picked { border-color: var(--purple); background: color-mix(in srgb, var(--purple) 12%, var(--surface)); }
+.aud-option:disabled { cursor: default; }
+.quiz-right { color: var(--success); font-weight: 800; margin: 0; }
+.quiz-wrong { color: var(--danger); font-weight: 800; margin: 0; }
+.aud-jury .jury-crit { display: flex; flex-direction: column; gap: 4px; }
+.jury-scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.jury-scale button { min-height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 800; cursor: pointer; }
+.jury-scale button.is-active { background: var(--grad); color: #fff; border-color: transparent; }
