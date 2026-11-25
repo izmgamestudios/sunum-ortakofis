@@ -7,7 +7,7 @@ import { RichText } from './RichText';
 import { useApp } from '../store';
 import type { BreakActivity, BreakConfig, Step, TopicMode } from '../types';
 import { QUICK_STEPS } from '../lib/factory';
-import { BREAK_ACTIVITIES } from '../lib/catalog';
+import { BREAK_ACTIVITIES, BREAK_GROUPS, BREAK_PRESETS } from '../lib/catalog';
 import { fmtDuration } from '../lib/report';
 import { RoleplaySettings } from './Roleplay';
 import { MediaPanel } from './Media';
@@ -49,13 +49,36 @@ function BreakSettings({ value, onChange }: { value: BreakConfig; onChange: (v: 
       )}
       {value.mode !== 'none' && (
         <>
-          <div className="pill-grid">
-            {(Object.keys(BREAK_ACTIVITIES) as BreakActivity[]).map((a) => (
-              <button key={a} className={`pill ${value.activities.includes(a) ? 'is-active' : ''}`} onClick={() => toggleAct(a)} aria-pressed={value.activities.includes(a)}>
-                {BREAK_ACTIVITIES[a].emoji} {BREAK_ACTIVITIES[a].label}
+          <div className="row gap-s wrap break-presets">
+            <span className="small muted">Hazır karışım:</span>
+            {BREAK_PRESETS.map((p) => (
+              <button key={p.label} className="btn btn-sm" onClick={() => onChange({ ...value, activities: p.acts })}>
+                {p.label}
               </button>
             ))}
           </div>
+          {BREAK_GROUPS.map((g) => (
+            <div key={g.label} className="break-group">
+              <p className="break-group-title">
+                {g.emoji} {g.label}
+              </p>
+              <div className="pill-grid">
+                {g.acts.map((a) => (
+                  <button
+                    key={a}
+                    className={`pill ${value.activities.includes(a) ? 'is-active' : ''}`}
+                    onClick={() => toggleAct(a)}
+                    aria-pressed={value.activities.includes(a)}
+                    title={BREAK_ACTIVITIES[a].minSec ? `en az ${BREAK_ACTIVITIES[a].minSec} sn` : undefined}
+                  >
+                    {BREAK_ACTIVITIES[a].emoji} {BREAK_ACTIVITIES[a].label}
+                    {BREAK_ACTIVITIES[a].minSec > 0 && <small className="pill-sec">{BREAK_ACTIVITIES[a].minSec} sn</small>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <p className="small muted">{value.activities.length} etkinlik seçili · otomatik molada süre, seçilen etkinliğin en kısa süresinden az olmaz.</p>
           <div className="seg-control" role="radiogroup" aria-label="Aktivite sırası">
             <button className={value.order === 'cycle' ? 'is-active' : ''} onClick={() => onChange({ ...value, order: 'cycle' })}>
               🔁 Sırayla

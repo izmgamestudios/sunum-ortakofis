@@ -17,7 +17,26 @@ export interface RoleplayConfig {
 }
 
 export type BreakMode = 'none' | 'manual' | 'auto';
-export type BreakActivity = 'breathing' | 'stretch' | 'water' | 'silent';
+export type BreakActivity =
+  | 'breathing'
+  | 'box'
+  | 'relax478'
+  | 'coherent'
+  | 'sigh'
+  | 'bodyscan'
+  | 'grounding'
+  | 'gratitude'
+  | 'affirm'
+  | 'focus'
+  | 'visualize'
+  | 'intention'
+  | 'stretch'
+  | 'eyes'
+  | 'posture'
+  | 'shake'
+  | 'smile'
+  | 'water'
+  | 'silent';
 
 export interface BreakConfig {
   mode: BreakMode;
