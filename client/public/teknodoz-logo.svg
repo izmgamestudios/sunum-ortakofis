@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="140 188 658 196" width="658" height="196" role="img" aria-label="Teknodoz">
+  <g fill="none" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#2c89f9">
+      <!-- T -->
+      <path d="M155 240 H205 M179 262 V329"/>
+      <!-- E (three bars) -->
+      <path d="M220 240 H272 M220 283 H268 M220 329 H272"/>
+      <!-- K as a chevron -->
+      <path d="M331 240 L288 284 L331 329"/>
+      <!-- N -->
+      <path d="M352 240 V300 M356 240 L417 329 M417 240 V329"/>
+      <!-- head of the figure (O) -->
+      <circle cx="482" cy="245" r="45"/>
+    </g>
+    <g stroke="#af2dfa">
+      <!-- body of the figure (Λ) -->
+      <path d="M439 370 L478 304 L517 370"/>
+      <!-- D -->
+      <path d="M541 240 H562 A44.5 44.5 0 0 1 562 329 H541"/>
+      <!-- O -->
+      <circle cx="664.5" cy="284" r="45.5"/>
+      <!-- Z -->
+      <path d="M728 240 H784 M776 262 L731 323 M731 329 H786"/>
+    </g>
+  </g>
+</svg>
