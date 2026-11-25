@@ -5154,3 +5154,13 @@ a.footer-link {
 .dock-btn .listen-dot { position: absolute; top: 6px; right: 10px; }
 .side-tab-ico .listen-dot { position: absolute; top: -2px; right: -8px; }
 .side-tab-ico { position: relative; }
+
+/* ---------- recording consent + report recordings ---------- */
+.consent-modal { max-width: 620px; }
+.consent-grid { display: grid; gap: 8px; }
+.consent-grid .choice { text-align: left; }
+.consent-grid .choice:disabled { opacity: 0.5; cursor: not-allowed; }
+.rec-list { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.rec-item { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface); }
+.rec-meta { display: flex; flex-direction: column; min-width: 180px; flex: 1; }
+.rec-item audio { height: 36px; max-width: 100%; flex: 1 1 260px; }

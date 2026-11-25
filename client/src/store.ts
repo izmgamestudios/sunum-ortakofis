@@ -60,7 +60,10 @@ interface AppState {
   newPresentation: () => void;
   loadPresentation: (p: Presentation) => void;
   // live control
+  /** asks for recording consent, then beginRun() */
   start: () => void;
+  beginRun: () => void;
+  recordPrompt: boolean;
   next: () => void;
   prev: () => void;
   /** jump to any step (used while paused); keeps the paused state */
@@ -223,7 +226,9 @@ export const useApp = create<AppState>((set, get) => {
 
     loadPresentation: (p) => set({ pres: p, live: idleLive(), view: p.run.endedAt ? 'report' : 'setup' }),
 
-    start: () => {
+    recordPrompt: false,
+    start: () => set({ recordPrompt: true }),
+    beginRun: () => {
       const { pres } = get();
       set({
         pres: touch({

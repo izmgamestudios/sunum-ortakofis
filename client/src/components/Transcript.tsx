@@ -81,7 +81,7 @@ export function TranscriptPanel() {
       </label>
       <label className="switch small">
         <input type="checkbox" checked={keepAudio} disabled={active} onChange={(e) => setKeepAudio(e.target.checked)} />
-        <span>💾 Ses kaydını da sakla (her adım ayrı dosya, Medya’ya eklenir)</span>
+        <span>🔴 Sesimi de kaydet (yalnızca bu cihazın mikrofonu · her adım ayrı dosya · Rapor’dan indirilir)</span>
       </label>
       {!supported && <p className="muted small">ℹ️ Bu tarayıcı canlı yazıya dökmeyi desteklemiyor. Chrome / Edge / Safari önerilir; aşağıdan metin yapıştırabilirsin.</p>}
       {error && <p className="error small">{error}</p>}

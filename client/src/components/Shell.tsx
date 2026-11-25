@@ -1,5 +1,6 @@
 // client/src/components/Shell.tsx
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { RecordConsent } from './Recordings';
 import { useApp } from '../store';
 import { useTheme, type ThemeMode } from '../lib/theme';
 import { buildReport, fmtDuration } from '../lib/report';
@@ -657,6 +658,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <Drawer />
       <SearchPalette />
       <ShortcutsModal />
+      <RecordConsent />
     </div>
   );
 }

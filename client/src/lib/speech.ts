@@ -1,8 +1,8 @@
 // client/src/lib/speech.ts
 import { create } from 'zustand';
 import { useApp } from '../store';
-import { readAsDataUrl } from './io';
 import { uid } from './factory';
+import { addRecording } from './recordings';
 import { useSettings } from './settings';
 
 /* Minimal typings — Web Speech API is not in lib.dom for all TS versions */
@@ -166,6 +166,7 @@ async function startRecording(): Promise<void> {
     const rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined);
     const parts: Blob[] = [];
     const stepIdx = useApp.getState().live.stepIndex;
+    const presId = useApp.getState().pres.id;
     const startedAt = Date.now();
     mediaRecorder = rec;
     rec.ondataavailable = (e) => {
@@ -179,11 +180,12 @@ async function startRecording(): Promise<void> {
       // skip accidental sub-second recordings (size thresholds vary by codec)
       if (Date.now() - startedAt < 1000 || !blob.size) return;
       const ext = type.includes('mp4') ? 'm4a' : 'webm';
-      const name = `ses-kaydi-adim-${stepIdx + 1}-${new Date().toLocaleTimeString('tr-TR').replace(/:/g, '-')}.${ext}`;
-      const dataUrl = await readAsDataUrl(blob);
-      useApp.getState().updateStep(stepIdx, (s) => ({
-        attachments: [...s.attachments, { id: uid(), kind: 'audio', name, mime: type, size: blob.size, dataUrl }],
-      }));
+      const name = `ses-kaydi-adim-${stepIdx + 1}-${new Date(startedAt).toLocaleTimeString('tr-TR').replace(/:/g, '-')}.${ext}`;
+      const { pres } = useApp.getState();
+      // kept on this device only — not in the presentation file, cloud share or .snmtdz
+      await addRecording({ id: uid(), presId, stepIndex: stepIdx, stepTitle: pres.steps[stepIdx]?.title ?? '', name, mime: type, size: blob.size, startedAt, durationMs: Date.now() - startedAt, blob }).catch(() =>
+        useSpeech.setState({ error: 'Ses kaydı cihaza kaydedilemedi (depolama dolu olabilir).' }),
+      );
     };
     rec.start(1000);
     useSpeech.setState({ recording: true });

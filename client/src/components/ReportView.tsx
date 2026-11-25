@@ -4,7 +4,8 @@ import { useApp } from '../store';
 import type { Swot } from '../types';
 import { buildReport, fmtDuration } from '../lib/report';
 import { EMOTIONS } from '../lib/catalog';
-import { exportElementToPdf, exportJson, exportMarkdown, exportSnmtdz, slugify } from '../lib/io';
+import { downloadBlob, exportElementToPdf, exportJson, exportMarkdown, exportSnmtdz, slugify } from '../lib/io';
+import { RecordingsSection, transcriptDocx } from './Recordings';
 import { renderBoard } from './Whiteboard';
 import { visibleElements } from '../lib/canvasGroups';
 import { NOTE_KINDS } from './Panels';
@@ -120,6 +121,11 @@ export function ReportView() {
         <button className="btn" onClick={() => exportMarkdown(pres)}>
           📝 Markdown
         </button>
+        {pres.transcript.length > 0 && (
+          <button className="btn" onClick={() => downloadBlob(transcriptDocx(pres), `${slugify(pres.title)}-dokum.docx`)}>
+            🎙️ Döküm .docx
+          </button>
+        )}
         <button className="btn btn-ghost" onClick={() => window.print()}>
           🖨️ Yazdır
         </button>
@@ -318,6 +324,8 @@ export function ReportView() {
             </div>
           </section>
         )}
+
+        <RecordingsSection />
 
         {pres.transcript.length > 0 && (
           <section data-anchor="report-transcript">
