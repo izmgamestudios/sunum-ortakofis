@@ -210,14 +210,19 @@ export function LiveView() {
 
   const controls = (
     <div className="controls">
-      <button className="icon-btn" onClick={prev} disabled={live.phase === 'step' && live.stepIndex === 0} aria-label="Önceki adım" title="Önceki (←)">
+      <button className="icon-btn" onClick={prev} disabled={live.phase === 'step' && live.stepIndex === 0 && !live.outro} aria-label="Önceki adım" title="Önceki (←)">
         ⏮
       </button>
       <button className={`icon-btn icon-btn--primary ${paused ? 'is-paused' : ''}`} onClick={togglePause} aria-label={paused ? 'Devam' : 'Duraklat'} title="Duraklat / devam (Boşluk)">
         {paused ? '▶' : '⏸'}
       </button>
-      <button className="icon-btn" onClick={next} aria-label={isLast && live.phase === 'step' ? 'Bitir' : 'Sonraki adım'} title="Sonraki (→)">
-        {isLast && live.phase === 'step' ? '🏁' : '⏭'}
+      <button
+        className="icon-btn"
+        onClick={() => (live.outro ? finish() : next())}
+        aria-label={live.outro ? 'Bitir ve raporu gör' : isLast && live.phase === 'step' ? (pres.outro?.enabled ? 'Kapanışa geç' : 'Bitir') : 'Sonraki adım'}
+        title={live.outro ? 'Bitir ve raporu gör' : isLast && live.phase === 'step' && pres.outro?.enabled ? 'Kapanışa geç (→)' : 'Sonraki (→)'}
+      >
+        {live.outro ? '📊' : isLast && live.phase === 'step' ? '🏁' : '⏭'}
       </button>
       <button
         className="icon-btn"
@@ -242,8 +247,8 @@ export function LiveView() {
           {timerText}
         </span>
         <span className="timer-sub">
-          {live.phase === 'break' ? 'Mola' : `${live.stepIndex + 1}/${pres.steps.length} · ${minLabel(step.durationSec)}`}
-          {paused ? ' · ⏸ duraklatıldı' : ''}
+          {live.outro ? '🙏 Kapanış' : live.intro ? '🎬 Giriş' : live.phase === 'break' ? 'Mola' : `${live.stepIndex + 1}/${pres.steps.length} · ${minLabel(step.durationSec)}`}
+          {paused && !live.outro && !live.intro ? ' · ⏸ duraklatıldı' : ''}
         </span>
         <MicIndicator />
       </div>
@@ -282,6 +287,23 @@ export function LiveView() {
 
   const breakOverlay = live.intro ? (
     <IntroScreen pres={pres} onStart={startFromIntro} />
+  ) : live.outro ? (
+    <OutroScreen
+      pres={pres}
+      actions={
+        <>
+          <button className="btn btn-lg" onClick={prev}>
+            ‹ Son adıma dön
+          </button>
+          <button className="btn btn-primary btn-lg" onClick={() => finish()}>
+            📊 Bitir ve raporu gör
+          </button>
+          <button className="btn btn-lg" onClick={() => confirm('Sunum baştan başlasın mı?') && start()}>
+            ↺ Yeniden başlat
+          </button>
+        </>
+      }
+    />
   ) : live.phase === 'break' && live.breakActivity ? (
       <BreakScreen
         activity={live.breakActivity}
@@ -337,7 +359,7 @@ export function LiveView() {
           panelFor={(t) => <SidePanel stepIndex={live.stepIndex} fixedTab={t} />}
           roleplay={live.currentRoleplay && live.phase === 'step' ? <RoleplayCard rp={live.currentRoleplay} onReroll={rerollRoleplay} compact /> : null}
         />
-        {paused && live.phase === 'step' && !live.intro && (
+        {paused && live.phase === 'step' && !live.intro && !live.outro && (
           <p className="paused-hint paused-hint--float" role="status">
             ⏸ Duraklatıldı — üstteki adım adlarına dokunarak gezinebilirsin. Devam: ▶ ya da Boşluk.
           </p>

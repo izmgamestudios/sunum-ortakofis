@@ -2,7 +2,7 @@
 import { RichText } from './RichText';
 import { useEffect, useMemo, useState } from 'react';
 import { hydrate } from '../store';
-import type { Presentation } from '../types';
+import type { CanvasView, Presentation } from '../types';
 import { normalizePresentation } from '../lib/factory';
 import { entryByShare, openPresentation } from '../lib/library';
 import { fetchShare, getMeta, importAsEditor, requestAccess, type ShareMeta } from '../lib/cloud';
@@ -14,7 +14,7 @@ import { ThemeSwitcher } from './Shell';
 import { SlideViewer } from './SlideViewer';
 import type { Step, TopicNode } from '../types';
 
-function ReadOnlyBoard({ step }: { step: Step }) {
+function ReadOnlyBoard({ step, view }: { step: Step; view?: CanvasView }) {
   const [el, setEl] = useState<HTMLCanvasElement | null>(null);
   const [w, setW] = useState(800);
   const [tick, setTick] = useState(0);
@@ -36,9 +36,9 @@ function ReadOnlyBoard({ step }: { step: Step }) {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, el.width, el.height);
     // same framing as the owner's last zoom / pan on this step
-    applyView(ctx, w, dpr, step.view);
+    applyView(ctx, w, dpr, view ?? step.view);
     visibleElements(step.canvas, step.groups).forEach((x) => drawElement(ctx, x, step.attachments, () => setTick((t) => t + 1)));
-  }, [el, w, step, tick]);
+  }, [el, w, step, tick, view]);
   return (
     <div className="watch-scroll">
       <canvas ref={setEl} aria-label="Tuval (salt okunur)" />
@@ -59,21 +59,41 @@ function Tree({ nodes }: { nodes: TopicNode[] }) {
   );
 }
 
-/** Read-only presentation page for anonymous viewers. */
-function SharedViewer({ pres, meta, onRefresh }: { pres: Presentation; meta: ShareMeta; onRefresh: () => void }) {
-  const [i, setI] = useState(0);
+export interface LivePos {
+  phase: 'step' | 'break' | 'intro' | 'outro' | 'done';
+  stepIndex: number;
+  zoom: number;
+  ox: number;
+  oy: number;
+  at: number;
+}
+
+/** Read-only presentation page for anonymous viewers: follow the presenter live, or browse freely. */
+function SharedViewer({ pres, meta, onRefresh, live }: { pres: Presentation; meta: ShareMeta; onRefresh: () => void; live: LivePos | null }) {
+  const [own, setI] = useState(0);
+  const [mode, setMode] = useState<'follow' | 'free'>('follow');
+  const isLive = !!live && live.phase !== 'done' && Date.now() - live.at < 30 * 60 * 1000;
+  const following = mode === 'follow' && isLive;
+  const i = following ? Math.min(live!.stepIndex, pres.steps.length - 1) : own;
+  // switching to free browsing starts from where the presenter is
+  const goFree = () => {
+    if (isLive) setI(Math.min(live!.stepIndex, pres.steps.length - 1));
+    setMode('free');
+  };
   const step = pres.steps[Math.min(i, pres.steps.length - 1)];
   const total = useMemo(() => pres.steps.reduce((a, s) => a + s.durationSec, 0), [pres]);
   const visual = step.attachments.filter((a) => a.kind !== 'file');
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest('input, textarea, .slides')) return;
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      if (following) goFree();
       if (e.key === 'ArrowRight') setI((x) => Math.min(pres.steps.length - 1, x + 1));
       if (e.key === 'ArrowLeft') setI((x) => Math.max(0, x - 1));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [pres.steps.length]);
+  }, [pres.steps.length, following]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="aud-page">
       <SharedHeader />
@@ -90,11 +110,33 @@ function SharedViewer({ pres, meta, onRefresh }: { pres: Presentation; meta: Sha
               ↻ yenile
             </button>
           </p>
+          <div className="follow-switch" role="radiogroup" aria-label="İzleme biçimi">
+            <label className={`follow-opt ${mode === 'follow' ? 'is-active' : ''}`}>
+              <input type="radio" name="follow" checked={mode === 'follow'} onChange={() => setMode('follow')} />
+              <span>
+                🎯 <b>Sunumu izle</b>
+                <small>{isLive ? 'Yöneticinin adımını ve ekran hareketlerini (yakınlaştırma, kaydırma) canlı takip et' : 'Yönetici şu an sunum yapmıyor — başlayınca otomatik takip edilir'}</small>
+              </span>
+            </label>
+            <label className={`follow-opt ${mode === 'free' ? 'is-active' : ''}`}>
+              <input type="radio" name="follow" checked={mode === 'free'} onChange={goFree} />
+              <span>
+                🧭 <b>Sunum dosyasında serbestçe dolaş</b>
+                <small>Adımlar arasında kendin gez; canlı sunumdan bağımsız</small>
+              </span>
+            </label>
+            {isLive && (
+              <span className="live-pill" role="status">
+                <span className="listen-dot is-on" /> Canlı · {live!.phase === 'intro' ? 'giriş' : live!.phase === 'outro' ? 'kapanış' : live!.phase === 'break' ? 'mola' : `${live!.stepIndex + 1}. adım`}
+              </span>
+            )}
+          </div>
           <ol className="step-dots step-dots--sm">
             {pres.steps.map((s, k) => (
               <li key={s.id} className={`step-dot ${k < i ? 'is-done' : ''} ${k === i ? 'is-current' : ''}`}>
-                <button className="step-dot-btn" onClick={() => setI(k)} aria-label={`${k + 1}. ${s.title}`}>
+                <button className="step-dot-btn" onClick={() => (following && goFree(), setI(k))} aria-label={`${k + 1}. ${s.title}`}>
                   <span className="dot-num">{k + 1}</span>
+                  <small className="dot-name">{s.title}</small>
                   <small className="dot-min">{Math.round(s.durationSec / 60)} dk</small>
                 </button>
               </li>
@@ -107,7 +149,8 @@ function SharedViewer({ pres, meta, onRefresh }: { pres: Presentation; meta: Sha
               <h2 className="live-title">
                 <span className="step-num">{i + 1}</span> {step.title}
               </h2>
-              {step.canvas.length > 0 && <ReadOnlyBoard step={step} />}
+              {following && live!.phase === 'break' && <p className="callout small">☕ Yönetici şu an molada — sonraki adım: {pres.steps[i + 1]?.title ?? ''}</p>}
+              {step.canvas.length > 0 && <ReadOnlyBoard step={step} view={following ? { zoom: live!.zoom, ox: live!.ox, oy: live!.oy } : undefined} />}
               {(step.html || step.text) && <RichText readOnly html={step.html} text={step.text} onChange={() => undefined} className="ro-text" />}
             </section>
             {visual.length > 0 && (
@@ -137,10 +180,10 @@ function SharedViewer({ pres, meta, onRefresh }: { pres: Presentation; meta: Sha
             )}
             <section className="card stack">
               <div className="row gap-s">
-                <button className="btn" disabled={i === 0} onClick={() => setI(i - 1)}>
+                <button className="btn" disabled={i === 0} onClick={() => (goFree(), setI(i - 1))}>
                   ‹ Önceki
                 </button>
-                <button className="btn btn-primary" disabled={i === pres.steps.length - 1} onClick={() => setI(i + 1)}>
+                <button className="btn btn-primary" disabled={i === pres.steps.length - 1} onClick={() => (goFree(), setI(i + 1))}>
                   Sonraki ›
                 </button>
               </div>
@@ -176,6 +219,7 @@ export function SharedEntry({ shareId, onOpenApp }: { shareId: string; onOpenApp
   const [phase, setPhase] = useState<Phase>({ k: 'loading' });
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
+  const [live, setLive] = useState<LivePos | null>(null);
 
   const leaveToApp = () => {
     const u = new URL(window.location.href);
@@ -221,9 +265,12 @@ export function SharedEntry({ shareId, onOpenApp }: { shareId: string; onOpenApp
     const s = getSocket();
     s.emit('share:watch', { id: phase.meta.id, token: phase.token });
     const onUpd = (e: { id: string }) => e.id === phase.meta.id && void refresh();
+    const onLive = (e: LivePos & { id: string }) => e.id === phase.meta.id && setLive({ ...e, at: Date.now() });
     s.on('share:updated', onUpd);
+    s.on('share:live', onLive);
     return () => {
       s.off('share:updated', onUpd);
+      s.off('share:live', onLive);
     };
   }, [phase.k]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -250,7 +297,7 @@ export function SharedEntry({ shareId, onOpenApp }: { shareId: string; onOpenApp
     }
   };
 
-  if (phase.k === 'viewer') return <SharedViewer pres={phase.pres} meta={phase.meta} onRefresh={refresh} />;
+  if (phase.k === 'viewer') return <SharedViewer pres={phase.pres} meta={phase.meta} onRefresh={refresh} live={live} />;
 
   return (
     <div className="aud-page">

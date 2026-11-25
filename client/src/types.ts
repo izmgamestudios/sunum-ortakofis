@@ -262,6 +262,8 @@ export interface LiveState {
   flipKey: number;
   /** intro screen is showing (step 1 waits, paused) */
   intro?: boolean;
+  /** outro screen is showing after the last step (steps stay visible, ← goes back) */
+  outro?: boolean;
 }
 
 export type View = 'library' | 'setup' | 'live' | 'report' | 'templates' | 'faq' | 'credits' | 'pixels';

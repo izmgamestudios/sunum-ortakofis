@@ -6,6 +6,7 @@ import { EMOTIONS, SETTINGS } from '../lib/catalog';
 import { foldTr as normalizeTr } from '../lib/speechMatch';
 import { FW_GROUPS, type FwGroup } from '../lib/frameworks';
 import { FwThumb } from './FrameworkPicker';
+import { AddTemplateDialog } from './StepTools';
 
 function isPristine(p: ReturnType<typeof useApp.getState>['pres']): boolean {
   return !p.steps.some((s) => s.text || s.attachments.length || s.canvas.length || s.words.length || s.topicTree.length) && !p.run.startedAt;
@@ -13,6 +14,7 @@ function isPristine(p: ReturnType<typeof useApp.getState>['pres']): boolean {
 
 function TemplateCard({ t, onUse }: { t: PresentationTemplate; onUse: (t: PresentationTemplate) => void }) {
   const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
   const cat = CATEGORIES[t.category];
   const rp = t.roleplay;
   return (
@@ -54,7 +56,11 @@ function TemplateCard({ t, onUse }: { t: PresentationTemplate; onUse: (t: Presen
         <button className="btn btn-primary btn-sm" onClick={() => onUse(t)}>
           ✨ Bu şablonla başla
         </button>
+        <button className="btn btn-sm" onClick={() => setAdding(true)} title="Bu şablonun adımlarını açık ya da kayıtlı bir sunuma ekle">
+          ➕ Mevcut sunuma ekle
+        </button>
       </div>
+      {adding && <AddTemplateDialog template={t} onClose={() => setAdding(false)} />}
     </article>
   );
 }

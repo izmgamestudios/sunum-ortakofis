@@ -6,6 +6,7 @@ import { importWithOwnerKey, listPublic, unshare } from '../lib/cloud';
 import { importFile, SNMTDZ_EXT } from '../lib/io';
 import { foldTr } from '../lib/speechMatch';
 import { ShareDialog } from './ShareDialog';
+import { MergeDialog, SplitDialog } from './StepTools';
 
 type Tab = 'all' | 'private' | 'mine' | 'withme' | 'explore';
 
@@ -33,6 +34,10 @@ export function LibraryView() {
   const [pubError, setPubError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [merging, setMerging] = useState(false);
+  const [splitting, setSplitting] = useState<string | null>(null);
+  const togglePick = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   useEffect(() => {
     if (tab !== 'explore' || publicItems) return;
@@ -149,9 +154,26 @@ export function LibraryView() {
               <option value="title">A → Z</option>
             </select>
           </div>
+          {picked.length > 0 && (
+            <div className="merge-bar" role="region" aria-label="Seçili sunumlar">
+              <span>
+                <b>{picked.length}</b> sunum seçili <small className="muted">(seçim sırası = birleştirme sırası)</small>
+              </span>
+              <button className="btn btn-primary btn-sm" disabled={picked.length < 2} onClick={() => setMerging(true)}>
+                🔗 Birleştir
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setPicked([])}>
+                Seçimi temizle
+              </button>
+            </div>
+          )}
           <div className="lib-grid">
             {list.map((e) => (
-              <article key={e.id} className={`lib-card ${e.id === currentId ? 'is-current' : ''}`}>
+              <article key={e.id} className={`lib-card ${e.id === currentId ? 'is-current' : ''} ${picked.includes(e.id) ? 'is-picked' : ''}`}>
+                <label className="lib-pick" title="Birleştirmek için seç">
+                  <input type="checkbox" checked={picked.includes(e.id)} onChange={() => togglePick(e.id)} aria-label={`${e.title} — birleştirmek için seç`} />
+                  {picked.includes(e.id) && <span className="lib-pick-n">{picked.indexOf(e.id) + 1}</span>}
+                </label>
                 <div className="lib-top">
                   <span className="lib-badge">{e.cloud ? (e.cloud.role === 'editor' ? '✏️ Düzenleyici' : VIS_BADGE[e.cloud.visibility]) : '🔒 Yalnızca bu cihaz'}</span>
                   {e.cloud?.role === 'owner' && e.cloud.visibility !== 'private' && <span className="lib-badge lib-badge--role">{e.cloud.linkRole === 'editor' ? '✏️ link: düzenle' : '👀 link: izle'}</span>}
@@ -170,6 +192,9 @@ export function LibraryView() {
                   </button>
                   <button className="btn btn-sm btn-ghost" onClick={() => duplicatePresentation(e.id).then(() => flash('Kopya oluşturuldu (özel)'))} title="Özel kopya">
                     ⧉
+                  </button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setSplitting(e.id)} title="İki sunuma ayır" disabled={e.stepCount < 2}>
+                    ✂️
                   </button>
                   {e.cloud?.role === 'editor' && (
                     <button className="btn btn-sm btn-ghost" onClick={() => confirm('Bu paylaşımdan ayrılınsın mı? Yerel kopya özel olarak kalır.') && unshare(e.id)} title="Paylaşımdan ayrıl">
@@ -208,6 +233,17 @@ export function LibraryView() {
         </div>
       )}
       {shareFor && <ShareDialog onClose={() => setShareFor(null)} />}
+      {merging && (
+        <MergeDialog
+          ids={picked}
+          onClose={() => setMerging(false)}
+          onDone={(m) => {
+            setPicked([]);
+            flash(m);
+          }}
+        />
+      )}
+      {splitting && <SplitDialog id={splitting} onClose={() => setSplitting(null)} onDone={flash} />}
       {msg && (
         <div className="toast" role="status">
           {msg}

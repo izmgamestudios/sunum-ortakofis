@@ -297,12 +297,50 @@ export function createShareRouter(io: Server, dataDir: string): Router {
   });
 
   /* ---------------- live change notifications ---------------- */
+  /** where the owner/editor currently is while presenting — read-only viewers can follow it */
+  interface LivePos {
+    id: string;
+    phase: 'step' | 'break' | 'intro' | 'outro' | 'done';
+    stepIndex: number;
+    zoom: number;
+    ox: number;
+    oy: number;
+    at: number;
+  }
+  const livePos = new Map<string, LivePos>();
+  const LIVE_TTL_MS = 30 * 60 * 1000;
+  const PHASES: LivePos['phase'][] = ['step', 'break', 'intro', 'outro', 'done'];
+  const num = (n: unknown, lo: number, hi: number) => typeof n === 'number' && Number.isFinite(n) && n >= lo && n <= hi;
+
   io.on('connection', (socket) => {
+    let tokens = 20;
+    let refill = Date.now();
     socket.on('share:watch', (p: { id?: string; token?: string; ownerKey?: string }) => {
       const m = typeof p?.id === 'string' ? metas.get(p.id) : undefined;
       if (!m) return;
       const owner = typeof p.ownerKey === 'string' && safeEq(sha256(p.ownerKey), m.ownerKeyHash);
-      if (owner || verify(p.token, m)) socket.join(`share:${m.id}`);
+      if (owner || verify(p.token, m)) {
+        socket.join(`share:${m.id}`);
+        const pos = livePos.get(m.id);
+        if (pos && Date.now() - pos.at < LIVE_TTL_MS) socket.emit('share:live', pos);
+      }
+    });
+    // presenter position (owner or editor only), relayed to everyone watching the share
+    socket.on('share:live', (p: Partial<LivePos> & { ownerKey?: string; token?: string }) => {
+      const now = Date.now();
+      tokens = Math.min(20, tokens + ((now - refill) / 1000) * 10);
+      refill = now;
+      if (tokens < 1) return;
+      tokens -= 1;
+      const m = typeof p?.id === 'string' ? metas.get(p.id) : undefined;
+      if (!m || m.visibility === 'private') return;
+      const owner = typeof p.ownerKey === 'string' && safeEq(sha256(p.ownerKey), m.ownerKeyHash);
+      if (!owner && verify(p.token, m) !== 'editor') return;
+      if (!PHASES.includes(p.phase as LivePos['phase']) || !Number.isInteger(p.stepIndex) || !num(p.stepIndex, 0, 50)) return;
+      const z = num(p.zoom, 0.1, 10) ? (p.zoom as number) : 1;
+      const pos: LivePos = { id: m.id, phase: p.phase as LivePos['phase'], stepIndex: p.stepIndex as number, zoom: z, ox: num(p.ox, -20000, 20000) ? (p.ox as number) : 0, oy: num(p.oy, -20000, 20000) ? (p.oy as number) : 0, at: now };
+      livePos.set(m.id, pos);
+      socket.to(`share:${m.id}`).emit('share:live', pos);
     });
     socket.on('share:unwatch', (p: { id?: string }) => typeof p?.id === 'string' && socket.leave(`share:${p.id}`));
   });

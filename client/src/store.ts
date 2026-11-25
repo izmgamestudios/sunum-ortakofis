@@ -272,7 +272,12 @@ export const useApp = create<AppState>((set, get) => {
       const { live, pres } = get();
       if (live.phase === 'step') {
         const isLast = live.stepIndex >= pres.steps.length - 1;
-        if (isLast) return get().finish();
+        if (isLast) {
+          // outro: thank-you / contact screen inside the live view; the report is one click away
+          if (pres.outro?.enabled && !live.outro) return set({ live: { ...live, outro: true, pausedAt: live.pausedAt ?? Date.now() } });
+          if (live.outro) return; // finishing is an explicit button on the outro screen
+          return get().finish();
+        }
         // paused → the presenter is browsing: skip the break
         if (!hasBreakAfter(pres, live.stepIndex) || live.pausedAt) return enterStep(live.stepIndex + 1);
         return enterBreak();
@@ -282,6 +287,11 @@ export const useApp = create<AppState>((set, get) => {
 
     prev: () => {
       const { live } = get();
+      if (live.outro) {
+        // back from the outro to the last step, timer continues
+        const now = Date.now();
+        return set({ live: { ...live, outro: false, pausedTotalMs: live.pausedTotalMs + (live.pausedAt ? now - live.pausedAt : 0), pausedAt: null } });
+      }
       if (live.phase === 'break') return enterStep(live.stepIndex);
       if (live.phase === 'step' && live.stepIndex > 0) enterStep(live.stepIndex - 1);
     },
@@ -296,6 +306,7 @@ export const useApp = create<AppState>((set, get) => {
 
     togglePause: () =>
       set((s) => {
+        if (s.live.outro) return {};
         const now = Date.now();
         if (s.live.pausedAt) {
           return { live: { ...s.live, pausedTotalMs: s.live.pausedTotalMs + (now - s.live.pausedAt), pausedAt: null } };
@@ -309,8 +320,7 @@ export const useApp = create<AppState>((set, get) => {
       const now = Date.now();
       const run = closeCurrentPhase(now);
       const { pres } = get();
-      // with an outro the thank-you / contact screen comes first, the report is one click away
-      set({ pres: touch({ ...pres, run: { ...run, endedAt: now } }), live: { ...idleLive(), phase: 'done' }, view: pres.outro?.enabled ? 'live' : 'report' });
+      set({ pres: touch({ ...pres, run: { ...run, endedAt: now } }), live: { ...idleLive(), phase: 'done' }, view: 'report' });
     },
 
     rerollRoleplay: () =>

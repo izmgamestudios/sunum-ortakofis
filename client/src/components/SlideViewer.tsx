@@ -85,6 +85,31 @@ export function SlideViewer({ attachments, focusId, onPinExisting, onPinNew, onA
   const [zoom, setZoom] = useState(1);
   const [pinning, setPinning] = useState(false);
   const swipe = useRef<number | null>(null);
+  /* F11-like fullscreen for the slide itself (CSS fallback where the API is missing, e.g. iOS) */
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [full, setFull] = useState(false);
+  const toggleFull = async () => {
+    const el = rootRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }) | null;
+    if (!el) return;
+    if (full) {
+      setFull(false);
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
+      return;
+    }
+    setFull(true);
+    try {
+      if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
+      else await el.webkitRequestFullscreen?.();
+    } catch {
+      /* CSS overlay stays */
+    }
+    el.focus();
+  };
+  useEffect(() => {
+    const onChange = () => !document.fullscreenElement && setFull(false);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
   const cur = slides[Math.min(idx, slides.length - 1)];
   const numPages = cur?.kind === 'pdf' ? pages[cur.id] ?? 0 : 0;
 
@@ -112,6 +137,15 @@ export function SlideViewer({ attachments, focusId, onPinExisting, onPinNew, onA
   };
 
   const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'f' || e.key === 'F' || e.key === 'F11') {
+      e.preventDefault();
+      e.stopPropagation();
+      return void toggleFull();
+    }
+    if (e.key === 'Escape' && full && !document.fullscreenElement) {
+      e.stopPropagation();
+      return setFull(false);
+    }
     if (['ArrowRight', 'PageDown', 'ArrowLeft', 'PageUp', '+', '-', '='].includes(e.key)) {
       e.preventDefault();
       e.stopPropagation(); // don't change the presentation step
@@ -155,7 +189,7 @@ export function SlideViewer({ attachments, focusId, onPinExisting, onPinNew, onA
   const yt = cur.kind === 'link' && cur.url ? youTubeEmbed(cur.url) : null;
 
   return (
-    <div className="slides" tabIndex={0} onKeyDown={onKey} aria-roledescription="slayt gösterisi" aria-label={`${cur.name}`}>
+    <div ref={rootRef} className={`slides ${full ? 'is-full' : ''}`} tabIndex={0} onKeyDown={onKey} aria-roledescription="slayt gösterisi" aria-label={`${cur.name}`}>
       <div className="slides-bar">
         <span className="slides-title truncate">
           {ICON[cur.kind]} {cur.name}
@@ -174,6 +208,9 @@ export function SlideViewer({ attachments, focusId, onPinExisting, onPinNew, onA
             {pinning ? '⏳' : '📌'} <span className="hide-sm">Tuvale ekle</span>
           </button>
         )}
+        <button className={`btn btn-sm ${full ? 'btn-primary' : ''}`} onClick={() => void toggleFull()} title={full ? 'Tam ekrandan çık (Esc / F)' : 'Slaytı tam ekran yap (F)'} aria-pressed={full}>
+          {full ? '🗗' : '⛶'} <span className="hide-sm">{full ? 'Küçült' : 'Tam ekran'}</span>
+        </button>
         {onAddClick && (
           <button className="btn btn-sm btn-ghost" onClick={onAddClick} title="Medya ekle">
             ＋

@@ -230,6 +230,24 @@ export function initCloudSync(): void {
     if (link?.shareId === e.id && link.role === 'editor') useCloud.setState({ status: 'deleted', message: 'Paylaşım sahibi tarafından kaldırıldı.' });
   });
 
+  // presenter position → people watching the shared link can follow it
+  let liveSig = '';
+  let liveTimer: ReturnType<typeof setTimeout> | undefined;
+  useApp.subscribe((st) => {
+    const link = cloudOf(st.pres.id);
+    if (!link || link.visibility === 'private') return;
+    const { live } = st;
+    const phase = live.intro ? 'intro' : live.outro ? 'outro' : live.phase === 'step' || live.phase === 'break' ? live.phase : 'done';
+    const v = st.pres.steps[live.stepIndex]?.view ?? { zoom: 1, ox: 0, oy: 0 };
+    const sig = `${link.shareId}|${phase}|${live.stepIndex}|${v.zoom}|${v.ox}|${v.oy}`;
+    if (sig === liveSig || (phase === 'done' && liveSig.includes('|done|'))) return;
+    liveSig = sig;
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(() => {
+      getSocket().emit('share:live', { id: link.shareId, ownerKey: link.ownerKey, token: link.ownerKey ? undefined : link.token, phase, stepIndex: live.stepIndex, zoom: v.zoom, ox: v.ox, oy: v.oy });
+    }, 150);
+  });
+
   let lastPresId = useApp.getState().pres.id;
   lastSynced = useApp.getState().pres;
   const refreshStatus = () => {
