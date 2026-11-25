@@ -1,5 +1,5 @@
 // client/src/lib/canvasDraw.ts — geometry + rendering for the whiteboard (shared by editor, thumbnails, export)
-import type { Attachment, CanvasElement } from '../types';
+import type { CanvasView, Attachment, CanvasElement } from '../types';
 import { uid } from './factory';
 
 export const BOARD_W = 1600;
@@ -184,6 +184,27 @@ export function elementLabel(el: CanvasElement, atts: Attachment[]): { icon: str
     case 'media':
       return { icon: att?.kind === 'pdf' ? '📄' : att?.kind === 'video' ? '🎬' : att?.kind === 'audio' ? '🎧' : '🔗', name: att?.name ?? 'Medya' };
   }
+}
+
+/* ---------------- viewport (zoom / pan) ---------------- */
+export const MIN_ZOOM = 0.34;
+export const MAX_ZOOM = 4;
+/** the work area extends one frame in every direction around the 16:9 presentation frame */
+export const WORLD = { x: -BOARD_W, y: -BOARD_H, w: BOARD_W * 3, h: BOARD_H * 3 };
+
+export function clampView(v: CanvasView): CanvasView {
+  const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number.isFinite(v.zoom) ? v.zoom : 1));
+  const vw = BOARD_W / zoom, vh = BOARD_H / zoom;
+  const cl = (o: number, size: number, min: number, span: number) => (size >= span ? min - (size - span) / 2 : Math.max(min, Math.min(min + span - size, Number.isFinite(o) ? o : 0)));
+  return { zoom, ox: cl(v.ox, vw, WORLD.x, WORLD.w), oy: cl(v.oy, vh, WORLD.y, WORLD.h) };
+}
+
+/** canvas transform so that the view's region fills a canvas cssW wide */
+export function applyView(ctx: CanvasRenderingContext2D, cssW: number, dpr: number, view?: CanvasView): number {
+  const v = view ? clampView(view) : { zoom: 1, ox: 0, oy: 0 };
+  const k = (cssW * dpr * v.zoom) / BOARD_W;
+  ctx.setTransform(k, 0, 0, k, -v.ox * k, -v.oy * k);
+  return k;
 }
 
 /* ---------------- rendering ---------------- */

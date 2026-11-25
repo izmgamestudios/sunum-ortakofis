@@ -175,6 +175,8 @@ export function LiveStage({ stepIndex, hud, sidePanel, overlay }: Props) {
             <div className="stage-canvas">
               <Whiteboard
                 key={step.id}
+                view={step.view}
+                onViewChange={(v) => updateStep(stepIndex, { view: v })}
                 elements={step.canvas}
                 groups={step.groups}
                 attachments={step.attachments}

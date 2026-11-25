@@ -7,7 +7,7 @@ import { entryByShare, openPresentation } from '../lib/library';
 import { fetchShare, getMeta, importAsEditor, requestAccess, type ShareMeta } from '../lib/cloud';
 import { getSocket } from '../lib/socket';
 import { visibleElements } from '../lib/canvasGroups';
-import { BOARD_H, BOARD_W, drawElement } from '../lib/canvasDraw';
+import { applyView, BOARD_H, BOARD_W, drawElement } from '../lib/canvasDraw';
 import { BetaBadge, Logo } from './Header';
 import { ThemeSwitcher } from './Shell';
 import { SlideViewer } from './SlideViewer';
@@ -31,10 +31,11 @@ function ReadOnlyBoard({ step }: { step: Step }) {
     el.style.width = `${w}px`;
     el.style.height = `${(w * BOARD_H) / BOARD_W}px`;
     const ctx = el.getContext('2d')!;
-    const k = (w * dpr) / BOARD_W;
-    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, BOARD_W, BOARD_H);
+    ctx.fillRect(0, 0, el.width, el.height);
+    // same framing as the owner's last zoom / pan on this step
+    applyView(ctx, w, dpr, step.view);
     visibleElements(step.canvas, step.groups).forEach((x) => drawElement(ctx, x, step.attachments, () => setTick((t) => t + 1)));
   }, [el, w, step, tick]);
   return (

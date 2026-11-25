@@ -1,6 +1,6 @@
 // client/src/components/Whiteboard.tsx — vector whiteboard: tools, groups/layer folders, transforms, zoom & pan
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Attachment, CanvasElement, CanvasGroup, CanvasTool } from '../types';
+import type { Attachment, CanvasElement, CanvasGroup, CanvasTool, CanvasView } from '../types';
 import { uid } from '../lib/factory';
 import { downloadBlob, dataUrlToBlob, fileToAttachment } from '../lib/io';
 import { FrameworkPicker } from './FrameworkPicker';
@@ -8,6 +8,10 @@ import {
   BOARD_H,
   BOARD_W,
   bbox,
+  clampView,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  WORLD,
   center,
   drawElement,
   elementLabel,
@@ -76,6 +80,10 @@ interface Props {
   compact?: boolean;
   fit?: boolean;
   toolbarExtra?: ReactNode;
+  /** initial zoom / pan (e.g. saved on the step) */
+  view?: CanvasView;
+  /** called (debounced) when the user zooms or pans — viewers follow it */
+  onViewChange?: (v: CanvasView) => void;
 }
 
 interface Editor {
@@ -101,25 +109,16 @@ type Drag =
   | { mode: 'marquee'; start: Pt; add: boolean }
   | { mode: 'pan'; sx: number; sy: number; ox: number; oy: number };
 
-interface View {
-  zoom: number;
-  ox: number;
-  oy: number;
-}
+type View = CanvasView;
+const DEFAULT_VIEW: View = { zoom: 1, ox: 0, oy: 0 };
+const isDefault = (v: View) => Math.abs(v.zoom - 1) < 1e-3 && Math.abs(v.ox) < 0.5 && Math.abs(v.oy) < 0.5;
 
 const ROT_GAP = 34;
 const HANDLE_PX = 11;
-const MIN_Z = 0.5;
-const MAX_Z = 4;
+const MIN_Z = MIN_ZOOM;
+const MAX_Z = MAX_ZOOM;
 const OPP: Record<Handle, Handle> = { nw: 'se', n: 's', ne: 'sw', e: 'w', se: 'nw', s: 'n', sw: 'ne', w: 'e' };
 
-function clampView(v: View): View {
-  const zoom = Math.max(MIN_Z, Math.min(MAX_Z, v.zoom));
-  const vw = BOARD_W / zoom, vh = BOARD_H / zoom;
-  const ox = vw >= BOARD_W ? -(vw - BOARD_W) / 2 : Math.max(0, Math.min(BOARD_W - vw, v.ox));
-  const oy = vh >= BOARD_H ? -(vh - BOARD_H) / 2 : Math.max(0, Math.min(BOARD_H - vh, v.oy));
-  return { zoom, ox, oy };
-}
 
 type TNode = { kind: 'g'; g: CanvasGroup; children: TNode[]; z: number; count: number } | { kind: 'e'; e: CanvasElement; z: number };
 
@@ -145,7 +144,7 @@ function buildTree(els: CanvasElement[], groups: CanvasGroup[]): TNode[] {
   return root.sort((a, b) => b.z - a.z);
 }
 
-export function Whiteboard({ elements, groups = [], onChange, attachments, onAddAttachments, onOpenMedia, title = 'tuval', compact = false, fit = false, toolbarExtra }: Props) {
+export function Whiteboard({ elements, groups = [], onChange, attachments, onAddAttachments, onOpenMedia, title = 'tuval', compact = false, fit = false, toolbarExtra, view: initialView, onViewChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -162,7 +161,7 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
   const [showLayers, setShowLayers] = useState(false);
   const [showFw, setShowFw] = useState(false);
   const [size, setSize] = useState({ w: 800, h: 450 });
-  const [view, setViewState] = useState<View>({ zoom: 1, ox: 0, oy: 0 });
+  const [view, setViewState] = useState<View>(() => clampView(initialView ?? DEFAULT_VIEW));
   const [marquee, setMarquee] = useState<Box | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [dragNode, setDragNode] = useState<string | null>(null);
@@ -180,6 +179,19 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
   viewRef.current = view;
 
   const setView = (v: View) => setViewState(clampView(v));
+  // report zoom / pan (debounced) so the step remembers it and viewers follow the presenter
+  const reported = useRef(view);
+  const onViewRef = useRef(onViewChange);
+  onViewRef.current = onViewChange;
+  useEffect(() => {
+    const r = reported.current;
+    if (r.zoom === view.zoom && r.ox === view.ox && r.oy === view.oy) return;
+    const t = setTimeout(() => {
+      reported.current = view;
+      onViewRef.current?.(view);
+    }, 180);
+    return () => clearTimeout(t);
+  }, [view]);
   const scale = size.w / BOARD_W;
   const s = scale * view.zoom; // board unit → css px
   const scene = working ?? { els: elements, groups };
@@ -257,8 +269,17 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
     ctx.fillRect(0, 0, c.width, c.height);
     const k = s * dpr;
     ctx.setTransform(k, 0, 0, k, -view.ox * k, -view.oy * k);
+    // the work area grows with zoom-out; the 16:9 presentation frame stays as a dashed guide
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, BOARD_W, BOARD_H);
+    ctx.fillRect(WORLD.x, WORLD.y, WORLD.w, WORLD.h);
+    if (!isDefault(view)) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148,163,184,0.9)';
+      ctx.lineWidth = 1.5 / s;
+      ctx.setLineDash([8 / s, 6 / s]);
+      ctx.strokeRect(0, 0, BOARD_W, BOARD_H);
+      ctx.restore();
+    }
     const redraw = () => setTick((t) => t + 1);
     scene.els.forEach((el) => {
       if (editor?.id === el.id || isHidden(el, gm)) return;
@@ -389,7 +410,7 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         zoomAt(Math.exp(-e.deltaY * 0.0022), e.clientX, e.clientY);
-      } else if (viewRef.current.zoom > 1) {
+      } else if (!isDefault(viewRef.current)) {
         e.preventDefault();
         const v = viewRef.current;
         const k = BOARD_W / v.zoom / c.getBoundingClientRect().width;
@@ -813,7 +834,7 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
     }
     if (mod && (k === '=' || k === '+')) return stop(), zoomAt(1.25);
     if (mod && k === '-') return stop(), zoomAt(0.8);
-    if (mod && k === '0') return stop(), setView({ zoom: 1, ox: 0, oy: 0 });
+    if (mod && k === '0') return stop(), setView(DEFAULT_VIEW);
     if (mod && k === 'z') return stop(), e.shiftKey ? redo() : undo();
     if (mod && k === 'y') return stop(), redo();
     if (mod && k === 'd') return stop(), duplicate();
@@ -1161,14 +1182,18 @@ export function Whiteboard({ elements, groups = [], onChange, attachments, onAdd
               <button onClick={() => zoomAt(0.8)} aria-label="Uzaklaştır" title="Uzaklaştır (Ctrl −)" disabled={view.zoom <= MIN_Z}>
                 −
               </button>
-              <button onClick={() => setView({ zoom: 1, ox: 0, oy: 0 })} title="Sığdır (Ctrl 0)" className="zoom-pct">
+              <button onClick={() => setView(DEFAULT_VIEW)} title="Sunum çerçevesine sığdır (Ctrl 0)" className="zoom-pct">
                 {Math.round(view.zoom * 100)}%
               </button>
               <button onClick={() => zoomAt(1.25)} aria-label="Yakınlaştır" title="Yakınlaştır (Ctrl +) · Ctrl+tekerlek · iki parmak" disabled={view.zoom >= MAX_Z}>
                 ＋
               </button>
             </div>
-            {view.zoom > 1 && <p className="pan-hint" aria-hidden>Kaydır: tekerlek · Boşluk+sürükle</p>}
+            {!isDefault(view) && (
+              <p className="pan-hint" aria-hidden>
+                {view.zoom < 1 ? 'Çalışma alanı genişledi · kesikli çizgi = sunum çerçevesi · ' : ''}Kaydır: tekerlek · Boşluk+sürükle
+              </p>
+            )}
           </div>
         </div>
 

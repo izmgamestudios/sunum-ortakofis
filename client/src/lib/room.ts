@@ -63,6 +63,7 @@ export const useRoom = create<RoomState>((set, get) => ({
           sentAssets.clear();
           pushState();
           pushCanvas(true);
+          pushView();
           return;
         }
       }
@@ -79,6 +80,7 @@ export const useRoom = create<RoomState>((set, get) => ({
       sentAssets.clear();
       pushState();
       pushCanvas(true);
+      pushView();
     } catch (e) {
       set({ error: e instanceof Error ? e.message : 'Sunucuya bağlanılamadı', connected: false });
     }
@@ -170,6 +172,11 @@ function wire(): void {
     }
     // live canvas mirror (throttled)
     const step = st.pres.steps[st.live.stepIndex];
+    if (step && (step.view !== lastView || st.live.stepIndex !== lastViewStep)) {
+      lastView = step.view;
+      lastViewStep = st.live.stepIndex;
+      pushView();
+    }
     if (step && (step.canvas !== lastCanvas || step.groups !== lastGroups || st.live.stepIndex !== lastCanvasStep)) {
       lastCanvas = step.canvas;
       lastGroups = step.groups;
@@ -210,6 +217,20 @@ function downscale(src: string, max = 1280): Promise<string | null> {
     img.onerror = () => resolve(null);
     img.src = src;
   });
+}
+
+let lastView: unknown;
+let lastViewStep = -1;
+let viewTimer: ReturnType<typeof setTimeout> | undefined;
+/** presenter zoom / pan → watch-only viewers follow it */
+export function pushView(): void {
+  clearTimeout(viewTimer);
+  viewTimer = setTimeout(() => {
+    if (!useRoom.getState().code) return;
+    const { pres, live } = useApp.getState();
+    const v = pres.steps[live.stepIndex]?.view ?? { zoom: 1, ox: 0, oy: 0 };
+    getSocket().emit('canvas:view', { stepIndex: live.stepIndex, zoom: v.zoom, ox: v.ox, oy: v.oy });
+  }, 120);
 }
 
 export function pushCanvas(immediate = false): void {

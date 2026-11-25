@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { emitAck, getSocket } from '../lib/socket';
 import { REACTIONS } from '../lib/catalog';
-import { BOARD_H, BOARD_W, drawElement } from '../lib/canvasDraw';
-import type { Attachment, CanvasElement, ChatMessage } from '../types';
+import { applyView, BOARD_H, BOARD_W, drawElement } from '../lib/canvasDraw';
+import type { Attachment, CanvasElement, CanvasView, ChatMessage } from '../types';
 import { BetaBadge, Logo } from './Header';
 import { ThemeSwitcher } from './Shell';
 
@@ -24,13 +24,20 @@ interface CanvasSnapshot {
 }
 
 type Tab = 'canvas' | 'chat' | 'suggest';
+type LiveView = CanvasView & { stepIndex: number };
 
-/** Read-only, zoomable, fullscreen-able mirror of the presenter's canvas. */
-function CanvasWatch({ snap, assets }: { snap: CanvasSnapshot | null; assets: Record<string, string> }) {
+/** Read-only mirror of the presenter's canvas: follows the presenter's zoom / pan unless the viewer zooms on their own. */
+function CanvasWatch({ snap, assets, view }: { snap: CanvasSnapshot | null; assets: Record<string, string>; view: LiveView | null }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [w, setW] = useState(600);
   const [zoom, setZoom] = useState(1);
+  const [follow, setFollow] = useState(true);
+  const presenterView = follow && view && snap && view.stepIndex === snap.stepIndex ? view : undefined;
+  const ownZoom = (z: number) => {
+    setFollow(false);
+    setZoom(z);
+  };
   const [tick, setTick] = useState(0);
   const atts = useMemo<Attachment[]>(
     () => (snap?.atts ?? []).map((a) => ({ id: a.id, kind: a.kind, name: a.name, mime: '', size: 0, dataUrl: assets[a.id], url: a.url })),
@@ -48,19 +55,19 @@ function CanvasWatch({ snap, assets }: { snap: CanvasSnapshot | null; assets: Re
   useEffect(() => {
     const c = canvas.current;
     if (!c) return;
-    const cssW = w * zoom;
+    const cssW = follow ? w : w * zoom;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     c.width = Math.round(cssW * dpr);
     c.height = Math.round(((cssW * BOARD_H) / BOARD_W) * dpr);
     c.style.width = `${cssW}px`;
     c.style.height = `${(cssW * BOARD_H) / BOARD_W}px`;
     const ctx = c.getContext('2d')!;
-    const k = (cssW * dpr) / BOARD_W;
-    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, BOARD_W, BOARD_H);
+    ctx.fillRect(0, 0, c.width, c.height);
+    applyView(ctx, cssW, dpr, presenterView);
     (snap?.elements ?? []).forEach((el) => drawElement(ctx, el, atts, () => setTick((t) => t + 1)));
-  }, [snap, atts, w, zoom, tick]);
+  }, [snap, atts, w, zoom, tick, follow, presenterView]);
 
   const fullscreen = () => {
     const el = wrap.current?.parentElement as (HTMLElement & { webkitRequestFullscreen?: () => void }) | null;
@@ -76,11 +83,19 @@ function CanvasWatch({ snap, assets }: { snap: CanvasSnapshot | null; assets: Re
         <span className="live-dot" aria-hidden /> <b>Canlı tuval</b>
         {snap && <span className="muted small">· {snap.stepIndex + 1}. adım</span>}
         <span className="watch-tools">
-          <button className="icon-btn icon-btn--ghost" onClick={() => setZoom((z) => Math.max(1, z - 0.5))} disabled={zoom <= 1} aria-label="Uzaklaştır">
+          {follow ? (
+            <span className="small muted" title="Sunucu yakınlaştırıp kaydırdıkça senin ekranın da aynısını gösterir">
+              🎯 Sunucuyu takip ediyor{presenterView && Math.abs(presenterView.zoom - 1) > 0.01 ? ` · ${Math.round(presenterView.zoom * 100)}%` : ''}
+            </span>
+          ) : (
+            <button className="btn btn-sm" onClick={() => (setFollow(true), setZoom(1))} title="Sunucunun gördüğü görünüme dön">
+              🎯 Sunucuyu takip et
+            </button>
+          )}
+          <button className="icon-btn icon-btn--ghost" onClick={() => ownZoom(Math.max(1, (follow ? 1 : zoom) - 0.5))} disabled={follow || zoom <= 1} aria-label="Uzaklaştır">
             −
           </button>
-          <span className="small muted">{Math.round(zoom * 100)}%</span>
-          <button className="icon-btn icon-btn--ghost" onClick={() => setZoom((z) => Math.min(3, z + 0.5))} disabled={zoom >= 3} aria-label="Yakınlaştır">
+          <button className="icon-btn icon-btn--ghost" onClick={() => ownZoom(Math.min(3, (follow ? 1 : zoom) + 0.5))} disabled={!follow && zoom >= 3} aria-label="Kendin yakınlaştır" title="Kendin yakınlaştır (takipten çıkar)">
             ＋
           </button>
           <button className="icon-btn icon-btn--ghost" onClick={fullscreen} aria-label="Tam ekran" title="Tam ekran">
@@ -110,6 +125,7 @@ export function AudienceView({ initialCode }: { initialCode: string }) {
   const [showPeople, setShowPeople] = useState(false);
   const [snap, setSnap] = useState<CanvasSnapshot | null>(null);
   const [assets, setAssets] = useState<Record<string, string>>({});
+  const [liveView, setLiveView] = useState<LiveView | null>(null);
   const [tab, setTab] = useState<Tab>('canvas');
   const [unread, setUnread] = useState(0);
   const [nick, setNick] = useState('');
@@ -154,6 +170,7 @@ export function AudienceView({ initialCode }: { initialCode: string }) {
       },
       'room:people': (p: { names: string[] }) => setPeople(p.names),
       canvas: (c: CanvasSnapshot) => setSnap(c),
+      'canvas:view': (v: LiveView) => setLiveView(v),
       'canvas:asset': (a: { id: string; dataUrl: string }) => setAssets((prev) => ({ ...prev, [a.id]: a.dataUrl })),
       connect: () => setConnected(true),
       disconnect: () => setConnected(false),
@@ -361,7 +378,7 @@ export function AudienceView({ initialCode }: { initialCode: string }) {
         <div className="aud-grid">
           <div className={`aud-col-main ${tab === 'canvas' ? '' : 'hide-mobile'}`}>
             <section className="card">
-              <CanvasWatch snap={snap} assets={assets} />
+              <CanvasWatch snap={snap} assets={assets} view={liveView} />
             </section>
           </div>
           <div className="aud-col-side">

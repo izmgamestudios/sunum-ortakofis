@@ -187,6 +187,9 @@ function StepEditor({ index, step }: { index: number; step: Step }) {
       )}
       {tab === 'canvas' && (
         <Whiteboard
+          key={step.id}
+          view={step.view}
+          onViewChange={(v) => patch({ view: v })}
           elements={step.canvas}
           groups={step.groups}
           attachments={step.attachments}

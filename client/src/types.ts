@@ -110,6 +110,15 @@ export interface Step {
   cue?: string;
   /** interactive tool shown as an extra stage tab */
   widget?: 'pixels';
+  /** presenter's canvas zoom / pan — read-only viewers follow it */
+  view?: CanvasView;
+}
+
+/** visible board region: top-left (ox, oy) in board units, zoom 1 = the 16:9 frame */
+export interface CanvasView {
+  zoom: number;
+  ox: number;
+  oy: number;
 }
 
 export type NoteKind = 'note' | 'quote' | 'action' | 'idea' | 'question';

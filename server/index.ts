@@ -51,6 +51,15 @@ interface Room {
   /** attachment id → downscaled image data URL, insertion-ordered for eviction */
   assets: Map<string, string>;
   assetBytes: number;
+  /** presenter's canvas zoom / pan; watch-only viewers follow it */
+  view: CanvasView | null;
+}
+
+interface CanvasView {
+  stepIndex: number;
+  zoom: number;
+  ox: number;
+  oy: number;
 }
 
 const MAX_CANVAS_JSON = 1_500_000;
@@ -173,6 +182,7 @@ io.on('connection', (socket: Socket) => {
   const chatBucket: RateBucket = { tokens: 5, updatedAt: Date.now() };
   const reactBucket: RateBucket = { tokens: 10, updatedAt: Date.now() };
   const canvasBucket: RateBucket = { tokens: 10, updatedAt: Date.now() };
+  const viewBucket: RateBucket = { tokens: 20, updatedAt: Date.now() };
   let joinedCode: string | null = null;
   let isPresenter = false;
   let name = anonName();
@@ -191,6 +201,7 @@ io.on('connection', (socket: Socket) => {
       canvas: null,
       assets: new Map(),
       assetBytes: 0,
+      view: null,
     };
     rooms.set(code, room);
     joinedCode = code;
@@ -228,6 +239,7 @@ io.on('connection', (socket: Socket) => {
     ack({ ok: true, name, state: room.state });
     // late joiners get the current canvas, then its images one by one
     if (room.canvas) socket.emit('canvas', room.canvas);
+    if (room.view) socket.emit('canvas:view', room.view);
     for (const [id, dataUrl] of room.assets) socket.emit('canvas:asset', { id, dataUrl });
     io.to(room.code).emit('room:count', io.sockets.adapter.rooms.get(room.code)?.size ?? 0);
     emitPeople(room);
@@ -271,6 +283,17 @@ io.on('connection', (socket: Socket) => {
     room.canvas = { stepIndex: payload.stepIndex as number, elements: payload.elements, atts, at: Date.now() };
     room.lastActivity = Date.now();
     socket.to(room.code).emit('canvas', room.canvas);
+  });
+
+  socket.on('canvas:view', (payload: Partial<CanvasView>) => {
+    if (!isPresenter || !joinedCode) return;
+    const room = rooms.get(joinedCode);
+    if (!room || !allow(viewBucket, 10, 20)) return;
+    const { stepIndex, zoom, ox, oy } = payload ?? {};
+    const num = (n: unknown, lo: number, hi: number) => typeof n === 'number' && Number.isFinite(n) && n >= lo && n <= hi;
+    if (!Number.isInteger(stepIndex) || !num(zoom, 0.1, 10) || !num(ox, -20000, 20000) || !num(oy, -20000, 20000)) return;
+    room.view = { stepIndex: stepIndex as number, zoom: zoom as number, ox: ox as number, oy: oy as number };
+    socket.to(room.code).emit('canvas:view', room.view);
   });
 
   socket.on('canvas:asset', (payload: { id?: string; dataUrl?: string }) => {
