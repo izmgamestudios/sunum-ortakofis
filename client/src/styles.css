@@ -5397,3 +5397,18 @@ a.footer-link {
 .jury-scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
 .jury-scale button { min-height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 800; cursor: pointer; }
 .jury-scale button.is-active { background: var(--grad); color: #fff; border-color: transparent; }
+
+/* ---------- AI coach teaser (coming soon) ---------- */
+.coming-soon { position: relative; overflow: hidden; min-height: 180px; }
+.coming-soon__blur { filter: blur(5px); opacity: .55; user-select: none; pointer-events: none; }
+.coming-soon__overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; text-align: center; padding: 16px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--surface, #fff) 70%, transparent));
+}
+.coming-soon__overlay strong { font-size: 1.15rem; }
+.coming-soon__badge {
+  font-size: .8rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; color: #fff;
+  background: linear-gradient(90deg, #7c3aed, #db2777);
+}
+@media print { .coming-soon { display: none; } }

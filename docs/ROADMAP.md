@@ -21,7 +21,9 @@ Zaman kutulu adımlar · tek tuval · 66 çerçeve ve iş kanvası · şablonlar
 - Pitch günü modu: jüri puanlama (kriterler: problem, çözüm, pazar, ekip, sunum) → sıralama.
 - **Kabul:** 50 sanal izleyiciyle oylama < 1 sn gecikme, rapora sonuçlar eklenir.
 
-## Sprint 3 — Yapay zekâ sunum koçu (Claude API)
+## ⏸️ Sprint 3 — Yapay zekâ sunum koçu (Claude API) — ertelendi
+> Arayüzde bulanık “✨ Pek yakında” önizlemesi var (Hazırlık + Rapor). API anahtarı ve maliyet modeli netleşince açılacak.
+
 - “Konudan taslak”: başlık + kitle + süre → adımlar, metinler, uygun çerçeve önerisi.
 - Döküm sonrası geri bildirim: net mesaj, hız, dolgu kelimeler, değer önerisi tutarlılığı, 3 somut öneri.
 - Maliyet kontrolü: kullanıcı başına günlük kota, sunucu tarafı anahtar, önbellek; ileride Pro.

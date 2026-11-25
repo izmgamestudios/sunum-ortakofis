@@ -1,6 +1,7 @@
 // client/src/components/SetupView.tsx
 import { useState } from 'react';
 import { JuryEditor, QuestionEditor } from './Interact';
+import { AiCoachTeaser } from './ComingSoon';
 import { GapToggle, IntroOutroEditor } from './IntroOutro';
 import { hasBreakAfter } from '../store';
 import { MinuteInput } from './MinuteInput';
@@ -307,6 +308,8 @@ export function SetupView() {
               ↺ Süreleri 1-2-3… dk yap
             </button>
           </div>
+
+          <AiCoachTeaser variant="setup" />
 
           <div className="card" data-anchor="setup-jury">
             <h2 className="card-title">🏆 Pitch günü jürisi</h2>

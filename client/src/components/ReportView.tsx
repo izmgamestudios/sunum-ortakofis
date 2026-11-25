@@ -1,6 +1,7 @@
 // client/src/components/ReportView.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ReportInteract } from './Interact';
+import { AiCoachTeaser } from './ComingSoon';
 import { useApp } from '../store';
 import type { Swot } from '../types';
 import { buildReport, fmtDuration } from '../lib/report';
@@ -325,6 +326,8 @@ export function ReportView() {
             </div>
           </section>
         )}
+
+        <div className="no-print"><AiCoachTeaser variant="report" /></div>
 
         <ReportInteract pres={pres} />
 
